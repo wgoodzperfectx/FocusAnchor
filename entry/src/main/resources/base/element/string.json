@@ -1,0 +1,84 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FocusAnchor entry module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "FocusAnchor main ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "FocusAnchor"
+    },
+    {
+      "name": "perm_vibrate_reason",
+      "value": "Vibrate when heart-rate alerts fire"
+    },
+    {
+      "name": "perm_album_reason",
+      "value": "Access album to set your profile avatar"
+    },
+    {
+      "name": "tab_home",
+      "value": "Home"
+    },
+    {
+      "name": "tab_heart",
+      "value": "Heart"
+    },
+    {
+      "name": "tab_tasks",
+      "value": "Tasks"
+    },
+    {
+      "name": "tab_insights",
+      "value": "Insights"
+    },
+    {
+      "name": "tab_settings",
+      "value": "Settings"
+    },
+    {
+      "name": "app_tagline",
+      "value": "Neurodiversity-friendly focus companion"
+    },
+    {
+      "name": "focus_state_calm",
+      "value": "Calm focus"
+    },
+    {
+      "name": "focus_state_alert",
+      "value": "Attention needed"
+    },
+    {
+      "name": "btn_add_task",
+      "value": "Add task"
+    },
+    {
+      "name": "btn_save",
+      "value": "Save"
+    },
+    {
+      "name": "btn_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "btn_start_monitor",
+      "value": "Start monitoring"
+    },
+    {
+      "name": "btn_stop_monitor",
+      "value": "Stop monitoring"
+    },
+    {
+      "name": "label_hr_range",
+      "value": "Heart-rate range"
+    },
+    {
+      "name": "label_pin",
+      "value": "PIN lock"
+    }
+  ]
+}
