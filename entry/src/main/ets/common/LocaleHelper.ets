@@ -1,8 +1,10 @@
 import { AppState } from '../services/AppState';
 import { LANG_ZH } from '../models/AppTypes';
 
-export function t(key: string): string {
-  const language: number = AppState.getInstance().settings.language ?? 0;
+export function t(key: string, langOverride?: number): string {
+  const language: number = langOverride !== undefined
+    ? langOverride
+    : (AppState.getInstance().settings.language ?? 0);
   if (language === LANG_ZH) {
     return zh(key);
   }
@@ -60,11 +62,11 @@ function en(key: string): string {
     case 'btn_cancel':
       return 'Cancel';
     case 'btn_add_task':
-      return 'Add task';
+      return 'Add';
     case 'btn_start_monitor':
-      return 'Start monitoring';
+      return 'Start';
     case 'btn_stop_monitor':
-      return 'Stop monitoring';
+      return 'Stop';
     case 'btn_record':
       return 'Record';
     case 'btn_done':
@@ -74,9 +76,9 @@ function en(key: string): string {
     case 'btn_remove':
       return 'Remove';
     case 'lang_en':
-      return 'English';
+      return 'EN';
     case 'lang_zh':
-      return 'Chinese';
+      return '中文';
     case 'saved':
       return 'Settings saved';
     case 'placeholder_name':
@@ -90,7 +92,7 @@ function en(key: string): string {
     case 'profile_hint':
       return 'Tell FocusAnchor who you are so guidance can stay personal and gentle.';
     case 'btn_pick_album':
-      return 'Choose from album';
+      return 'From album';
     case 'pick_album_fail':
       return 'Unable to open album';
     case 'metric_heart_rate':
@@ -142,7 +144,7 @@ function en(key: string): string {
     case 'priority_high':
       return 'High';
     case 'priority_medium':
-      return 'Medium';
+      return 'Med';
     case 'priority_low':
       return 'Low';
     case 'min_unit':
@@ -199,6 +201,84 @@ function en(key: string): string {
       return 'Max BPM';
     case 'bpm_unit':
       return 'bpm';
+    case 'btn_focus':
+      return 'Focus';
+    case 'system_time':
+      return 'System time';
+    case 'focus_level_green':
+      return 'excellent';
+    case 'focus_level_yellow':
+      return 'good';
+    case 'focus_level_orange':
+      return 'fair';
+    case 'focus_level_red':
+      return 'poor';
+    case 'btn_voice':
+      return 'Voice';
+    case 'btn_voice_add':
+      return 'Voice+';
+    case 'voice_listening':
+      return 'Listening…';
+    case 'voice_ok':
+      return 'Voice captured';
+    case 'voice_fail':
+      return 'Mic denied';
+    case 'task_saved_view':
+      return 'Saved. See list below.';
+    case 'btn_xiaoyi_advice':
+      return 'Advice';
+    case 'insight_label':
+      return 'Advice';
+    case 'due_time':
+      return 'Deadline (YYYY-MM-DD HH:mm)';
+    case 'edit_task':
+      return 'Edit task';
+    case 'pending_list':
+      return 'Pending';
+    case 'pending_empty':
+      return 'No pending tasks. Add one above.';
+    case 'deadline_label':
+      return 'Deadline';
+    case 'btn_clear':
+      return 'Clear';
+    case 'priority_auto':
+      return 'Raised near deadline';
+    case 'selected_task':
+      return 'Selected task';
+    case 'reminder_title':
+      return 'FocusAnchor reminder';
+    case 'reminder_body_prefix':
+      return 'You still have ';
+    case 'reminder_body_suffix':
+      return ' unfinished task(s).';
+    case 'btn_remind':
+      return 'Remind';
+    case 'xiaoyi_hr_hint':
+      return 'Heart rate via Xiaoyi';
+    case 'float_menu_title':
+      return 'Quick';
+    case 'float_voice':
+      return 'Voice';
+    case 'float_listening':
+      return 'Listening…';
+    case 'float_voice_unknown':
+      return 'Say Focus / Settings / Add task';
+    case 'float_task_ok':
+      return 'Task added';
+    case 'float_double_hint':
+      return 'Double-tap ball for voice';
+    case 'float_voice_tip':
+      return 'Say Focus, Settings, or Add task';
+    case 'float_voice_retry':
+      return 'Speak again';
+    case 'hr_msg_yellow':
+      return 'Heart rate slightly elevated. Stay mindful.';
+    case 'hr_msg_orange':
+      return 'Heart rate rising. Consider a short pause.';
+    case 'wear_readonly':
+      return 'Watch sync (read-only from phone)';
+    case 'home_overview':
+      return 'Overview';
     default:
       return key;
   }
@@ -394,9 +474,103 @@ function zh(key: string): string {
       return '最高心率';
     case 'bpm_unit':
       return '次/分';
+    case 'btn_focus':
+      return '焦点';
+    case 'system_time':
+      return '系统时间';
+    case 'focus_level_green':
+      return '优秀';
+    case 'focus_level_yellow':
+      return '良好';
+    case 'focus_level_orange':
+      return '一般';
+    case 'focus_level_red':
+      return '较差';
+    case 'btn_voice':
+      return '小艺语音';
+    case 'btn_voice_add':
+      return '语音添加';
+    case 'voice_listening':
+      return '正在聆听，请说话…';
+    case 'voice_ok':
+      return '语音已识别';
+    case 'voice_fail':
+      return '麦克风权限被拒绝';
+    case 'task_saved_view':
+      return '已保存到本地，请在下方列表查看。';
+    case 'btn_xiaoyi_advice':
+      return '小艺建议';
+    case 'insight_label':
+      return '建议';
+    case 'due_time':
+      return 'Deadline（YYYY-MM-DD HH:mm）';
+    case 'edit_task':
+      return '编辑任务';
+    case 'pending_list':
+      return '未完成任务';
+    case 'pending_empty':
+      return '暂无未完成任务，在上方添加后会出现在此列表。';
+    case 'deadline_label':
+      return 'Deadline';
+    case 'btn_clear':
+      return '从列表清除';
+    case 'priority_auto':
+      return '临近 Deadline，紧急程度已提高一级';
+    case 'selected_task':
+      return '当前任务';
+    case 'reminder_title':
+      return '焦点锚提醒';
+    case 'reminder_body_prefix':
+      return '你还有 ';
+    case 'reminder_body_suffix':
+      return ' 个未完成任务。';
+    case 'btn_remind':
+      return '提醒未完成';
+    case 'xiaoyi_hr_hint':
+      return '经小艺智能体测量心率';
+    case 'float_menu_title':
+      return '快捷';
+    case 'float_voice':
+      return '语音';
+    case 'float_listening':
+      return '聆听中…';
+    case 'float_voice_unknown':
+      return '请说：焦点 / 设置 / 添加任务';
+    case 'float_task_ok':
+      return '已添加任务';
+    case 'float_double_hint':
+      return '双击悬浮球语音';
+    case 'float_voice_tip':
+      return '请说：焦点、设置或添加任务';
+    case 'float_voice_retry':
+      return '再试一次';
+    case 'hr_msg_yellow':
+      return '心率略有升高，请保持觉察。';
+    case 'hr_msg_orange':
+      return '心率继续升高，建议短暂暂停。';
+    case 'wear_readonly':
+      return '手表同步（仅从手机只读）';
+    case 'home_overview':
+      return '概览';
     default:
       return en(key);
   }
+}
+
+export function focusLevelLabel(level: string | undefined, langOverride?: number): string {
+  if (level === 'green') {
+    return t('focus_level_green', langOverride);
+  }
+  if (level === 'yellow') {
+    return t('focus_level_yellow', langOverride);
+  }
+  if (level === 'orange') {
+    return t('focus_level_orange', langOverride);
+  }
+  if (level === 'red') {
+    return t('focus_level_red', langOverride);
+  }
+  return t('zone_waiting', langOverride);
 }
 
 export function zoneLabel(zone: string | undefined): string {

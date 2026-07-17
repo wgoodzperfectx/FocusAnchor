@@ -1,4 +1,12 @@
-import { AppSettings, FocusAdvice, HeartRateSnapshot, HeartRateZone, StudyTask } from '../models/AppTypes';
+import {
+  AppSettings,
+  FocusAdvice,
+  FocusLevel,
+  focusLevelFromBpm,
+  focusLevelToZone,
+  HeartRateSnapshot,
+  StudyTask
+} from '../models/AppTypes';
 import { methodLabel, t } from '../common/LocaleHelper';
 
 export class HeartRateService {
@@ -9,9 +17,9 @@ export class HeartRateService {
     this.stop();
     this.timerId = setInterval(() => {
       const drift = Math.floor(Math.random() * 11) - 5;
-      this.latestBpm = Math.max(52, Math.min(128, this.latestBpm + drift));
+      this.latestBpm = Math.max(60, Math.min(120, this.latestBpm + drift));
       onSample(this.analyse(this.latestBpm, settings));
-    }, 3000);
+    }, 2000);
   }
 
   stop(): void {
@@ -26,34 +34,30 @@ export class HeartRateService {
     return this.analyse(bpm, settings);
   }
 
-  analyse(bpm: number, settings: AppSettings): HeartRateSnapshot {
-    const zone = this.resolveZone(bpm, settings);
+  analyse(bpm: number, _settings: AppSettings): HeartRateSnapshot {
+    const focusLevel: FocusLevel = focusLevelFromBpm(bpm);
+    const zone = focusLevelToZone(focusLevel);
     let message = t('hr_msg_optimal');
-    if (zone === 'low') {
-      message = t('hr_msg_low');
-    } else if (zone === 'high') {
+    if (focusLevel === 'yellow') {
+      message = t('hr_msg_yellow');
+    } else if (focusLevel === 'orange') {
+      message = t('hr_msg_orange');
+    } else if (focusLevel === 'red') {
       message = t('hr_msg_high');
+    } else if (focusLevel === 'green') {
+      message = t('hr_msg_optimal');
     }
     return {
       bpm,
       timestamp: Date.now(),
       zone,
+      focusLevel,
       message
     };
   }
 
   shouldAlert(snapshot: HeartRateSnapshot, settings: AppSettings): boolean {
     return snapshot.bpm < settings.hrMin || snapshot.bpm > settings.hrMax;
-  }
-
-  private resolveZone(bpm: number, settings: AppSettings): HeartRateZone {
-    if (bpm < settings.hrMin) {
-      return 'low';
-    }
-    if (bpm > settings.hrMax) {
-      return 'high';
-    }
-    return 'optimal';
   }
 }
 
@@ -64,13 +68,13 @@ export class AdviceService {
     const completed = tasks.filter((task: StudyTask) => task.completed).length;
     const completionRate = tasks.length === 0 ? 0 : Math.round((completed / tasks.length) * 100);
 
-    if (snapshot?.zone === 'high') {
+    if (snapshot?.focusLevel === 'red' || snapshot?.focusLevel === 'orange') {
       advice.push({
         title: t('advice_high_title'),
         detail: t('advice_high_detail'),
         category: 'alert'
       });
-    } else if (snapshot?.zone === 'low') {
+    } else if (snapshot?.focusLevel === 'yellow') {
       advice.push({
         title: t('advice_low_title'),
         detail: t('advice_low_detail'),
@@ -108,7 +112,8 @@ export class AdviceService {
   }
 
   efficiencyScore(snapshot: HeartRateSnapshot | undefined, tasks: StudyTask[]): number {
-    const zoneScore = snapshot?.zone === 'optimal' ? 70 : snapshot?.zone === 'high' ? 45 : 55;
+    const level = snapshot?.focusLevel;
+    const zoneScore = level === 'green' ? 70 : level === 'yellow' ? 60 : level === 'orange' ? 45 : 35;
     const completion = tasks.length === 0 ? 20 :
       Math.round((tasks.filter((task: StudyTask) => task.completed).length / tasks.length) * 30);
     const priorityScore = tasks.some((task: StudyTask) => !task.completed && task.priority === 1) ? 0 : 10;

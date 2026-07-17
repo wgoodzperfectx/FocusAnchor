@@ -37,6 +37,18 @@
           ]
         }
       ]
+    },
+    {
+      "name": "wear",
+      "srcPath": "./wear",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
     }
   ]
 }

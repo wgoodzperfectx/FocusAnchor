@@ -38,7 +38,7 @@ struct SettingsPage {
   }
 
   private tx(key: string): string {
-    return this.language >= 0 ? t(key) : t(key);
+    return t(key, this.language);
   }
 
   private loadFromState(): void {
@@ -82,6 +82,12 @@ struct SettingsPage {
     }
   }
 
+  private async persistLanguageOnly(language: number): Promise<void> {
+    const settings = this.appState.settings;
+    settings.language = language;
+    await this.appState.updateSettings(settings, this.pinValue || 'focus-anchor-default');
+  }
+
   private async saveAll(): Promise<void> {
     const age = Number.parseInt(this.ageText);
     const settings: AppSettings = {
@@ -114,7 +120,7 @@ struct SettingsPage {
       Row() {
         Text(this.tx('btn_back'))
           .fontSize(16)
-          .fontColor($r('app.color.primary'))
+          .fontColor($r('app.color.text_primary'))
           .onClick(() => {
             this.getUIContext().getRouter().back();
           })
@@ -126,16 +132,19 @@ struct SettingsPage {
         Blank()
         Text('⚙')
           .fontSize(20)
+          .fontColor($r('app.color.text_secondary'))
           .opacity(0.35)
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      .backgroundColor($r('app.color.surface'))
 
       Scroll() {
         Column({ space: 18 }) {
           Text(this.tx('section_language'))
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
 
           Row({ space: 10 }) {
@@ -145,10 +154,11 @@ struct SettingsPage {
               .padding({ left: 16, right: 16, top: 10, bottom: 10 })
               .backgroundColor(this.language === LANG_EN ? $r('app.color.primary') : $r('app.color.surface'))
               .borderRadius(20)
-              .onClick(() => {
+              .onClick(async () => {
                 this.language = LANG_EN;
                 this.appState.settings.language = LANG_EN;
                 this.tick++;
+                await this.persistLanguageOnly(LANG_EN);
               })
             Text(this.tx('lang_zh'))
               .fontSize(14)
@@ -156,10 +166,11 @@ struct SettingsPage {
               .padding({ left: 16, right: 16, top: 10, bottom: 10 })
               .backgroundColor(this.language === LANG_ZH ? $r('app.color.primary') : $r('app.color.surface'))
               .borderRadius(20)
-              .onClick(() => {
+              .onClick(async () => {
                 this.language = LANG_ZH;
                 this.appState.settings.language = LANG_ZH;
                 this.tick++;
+                await this.persistLanguageOnly(LANG_ZH);
               })
           }
           .width('100%')
@@ -167,6 +178,7 @@ struct SettingsPage {
           Text(this.tx('section_profile'))
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           Text(this.tx('profile_hint'))
             .fontSize(13)
@@ -199,6 +211,7 @@ struct SettingsPage {
 
           Text(this.tx('label_avatar'))
             .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
             ForEach(AVATAR_OPTIONS, (item: AvatarPreset) => {
@@ -232,20 +245,29 @@ struct SettingsPage {
 
           Text(this.tx('label_name'))
             .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           TextInput({ text: this.userName, placeholder: this.tx('placeholder_name') })
+            .fontColor(Color.White)
+            .placeholderColor('#AAAAAA')
+            .backgroundColor('#444444')
             .onChange((value: string) => this.userName = value)
 
           Text(this.tx('label_age'))
             .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           TextInput({ text: this.ageText, placeholder: this.tx('placeholder_age') })
             .type(InputType.Number)
+            .fontColor(Color.White)
+            .placeholderColor('#AAAAAA')
+            .backgroundColor('#444444')
             .onChange((value: string) => this.ageText = value)
 
           Text(this.tx('section_privacy'))
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           Text(this.tx('privacy_hint'))
             .fontSize(13)
@@ -255,6 +277,7 @@ struct SettingsPage {
           Row() {
             Text(this.tx('privacy_share'))
               .fontSize(14)
+              .fontColor($r('app.color.text_primary'))
               .layoutWeight(1)
               .margin({ right: 12 })
             Toggle({ type: ToggleType.Switch, isOn: this.shareUsageData })
@@ -268,6 +291,7 @@ struct SettingsPage {
           Row() {
             Text(this.tx('privacy_analytics'))
               .fontSize(14)
+              .fontColor($r('app.color.text_primary'))
               .layoutWeight(1)
               .margin({ right: 12 })
             Toggle({ type: ToggleType.Switch, isOn: this.allowAnalytics })
@@ -281,6 +305,7 @@ struct SettingsPage {
           Row() {
             Text(this.tx('privacy_show_age'))
               .fontSize(14)
+              .fontColor($r('app.color.text_primary'))
               .layoutWeight(1)
               .margin({ right: 12 })
             Toggle({ type: ToggleType.Switch, isOn: this.showAgeOnProfile })
@@ -294,6 +319,7 @@ struct SettingsPage {
           Row() {
             Text(this.tx('privacy_local_only'))
               .fontSize(14)
+              .fontColor($r('app.color.text_primary'))
               .layoutWeight(1)
               .margin({ right: 12 })
             Toggle({ type: ToggleType.Switch, isOn: this.localEncryptionOnly })
@@ -307,24 +333,33 @@ struct SettingsPage {
           Text(this.tx('section_heart'))
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           Text(this.tx('label_hr_range'))
             .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           Row({ space: 12 }) {
             TextInput({ text: this.hrMin, placeholder: this.tx('placeholder_hr_min') })
               .type(InputType.Number)
               .layoutWeight(1)
+              .fontColor(Color.White)
+              .placeholderColor('#AAAAAA')
+              .backgroundColor('#444444')
               .onChange((value: string) => this.hrMin = value)
             TextInput({ text: this.hrMax, placeholder: this.tx('placeholder_hr_max') })
               .type(InputType.Number)
               .layoutWeight(1)
+              .fontColor(Color.White)
+              .placeholderColor('#AAAAAA')
+              .backgroundColor('#444444')
               .onChange((value: string) => this.hrMax = value)
           }
           .width('100%')
 
           Row() {
             Text(this.tx('label_pin'))
+              .fontColor($r('app.color.text_primary'))
               .layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.pinEnabled })
               .onChange((value: boolean) => this.pinEnabled = value)

@@ -14,6 +14,7 @@ import {
 const PREF_NAME: string = 'focux_anchor_store';
 const DATA_KEY: string = 'encrypted_payload';
 const SETTINGS_KEY: string = 'settings_plain';
+const LANG_KEY: string = 'app_language';
 
 export class StorageService {
   private static instance: StorageService | undefined;
@@ -33,24 +34,31 @@ export class StorageService {
   }
 
   async loadBundle(pin: string): Promise<AppDataBundle> {
-    const settings = await this.loadSettings();
+    const plainSettings = await this.loadSettings();
     if (!this.pref) {
-      return { tasks: [], heartRateHistory: [], settings };
+      return { tasks: [], heartRateHistory: [], settings: plainSettings };
     }
     const encrypted = await this.pref.get(DATA_KEY, '') as string;
+    const plainRaw = await this.pref.get(SETTINGS_KEY, '') as string;
     if (!encrypted) {
-      return { tasks: [], heartRateHistory: [], settings };
+      return { tasks: [], heartRateHistory: [], settings: plainSettings };
     }
     try {
       const plain = await this.decryptPayload(encrypted, pin || 'focus-anchor-default');
       const parsed = JSON.parse(plain) as AppDataBundle;
+      // Plain SETTINGS_KEY is source of truth for language/profile (Settings page writes it).
+      // Encrypted blob may contain a stale language:0 and must not wipe Chinese.
+      const fromEncrypted = parsed.settings ? this.mergeSettings(parsed.settings) : plainSettings;
+      const settings = (plainRaw && plainRaw.length > 0)
+        ? plainSettings
+        : fromEncrypted;
       return {
         tasks: parsed.tasks ?? [],
         heartRateHistory: parsed.heartRateHistory ?? [],
-        settings: this.mergeSettings(parsed.settings ?? settings)
+        settings: settings
       };
     } catch (error) {
-      return { tasks: [], heartRateHistory: [], settings };
+      return { tasks: [], heartRateHistory: [], settings: plainSettings };
     }
   }
 
@@ -59,6 +67,7 @@ export class StorageService {
       return;
     }
     await this.pref.put(SETTINGS_KEY, JSON.stringify(bundle.settings));
+    await this.pref.put(LANG_KEY, this.normalizeLanguage(bundle.settings.language));
     const payload = JSON.stringify({
       tasks: bundle.tasks,
       heartRateHistory: bundle.heartRateHistory,
@@ -93,7 +102,7 @@ export class StorageService {
       pinHash: partial.pinHash ?? '',
       userName: partial.userName ?? DEFAULT_SETTINGS.userName,
       age: partial.age ?? DEFAULT_SETTINGS.age,
-      language: typeof partial.language === 'number' ? partial.language : 0,
+      language: this.normalizeLanguage(partial.language),
       avatar: partial.avatar ?? DEFAULT_SETTINGS.avatar,
       avatarUri: partial.avatarUri ?? '',
       privacy: {
@@ -105,12 +114,43 @@ export class StorageService {
     };
   }
 
+  private normalizeLanguage(value: number | string | undefined | null): number {
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+      return value === 1 ? 1 : 0;
+    }
+    if (typeof value === 'string') {
+      if (value === '1' || value === 'zh' || value === 'zh-CN') {
+        return 1;
+      }
+      const parsed = Number.parseInt(value);
+      return parsed === 1 ? 1 : 0;
+    }
+    return 0;
+  }
+
   async saveSettings(settings: AppSettings): Promise<void> {
     if (!this.pref) {
       return;
     }
     await this.pref.put(SETTINGS_KEY, JSON.stringify(settings));
+    await this.pref.put(LANG_KEY, this.normalizeLanguage(settings.language));
     await this.pref.flush();
+  }
+
+  async loadLanguage(): Promise<number> {
+    if (!this.pref) {
+      return 0;
+    }
+    try {
+      const stored = await this.pref.get(LANG_KEY, -1);
+      if (typeof stored === 'number' && stored >= 0) {
+        return this.normalizeLanguage(stored);
+      }
+      const settings = await this.loadSettings();
+      return this.normalizeLanguage(settings.language);
+    } catch (error) {
+      return 0;
+    }
   }
 
   private async encryptPayload(plainText: string, pin: string): Promise<string> {
@@ -191,7 +231,9 @@ export function sortTasks(tasks: StudyTask[]): StudyTask[] {
     if (left.priority !== right.priority) {
       return left.priority - right.priority;
     }
-    return (left.dueAt ?? Number.MAX_SAFE_INTEGER) - (right.dueAt ?? Number.MAX_SAFE_INTEGER);
+    const leftTime = left.dueAt ?? left.createdAt;
+    const rightTime = right.dueAt ?? right.createdAt;
+    return leftTime - rightTime;
   });
 }
 

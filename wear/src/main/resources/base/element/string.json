@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FocusAnchor watch module"
+    },
+    {
+      "name": "WearAbility_desc",
+      "value": "FocusAnchor watch ability"
+    },
+    {
+      "name": "WearAbility_label",
+      "value": "FocusAnchor"
+    },
+    {
+      "name": "perm_sync_reason",
+      "value": "Read tasks synced from phone"
+    }
+  ]
+}
