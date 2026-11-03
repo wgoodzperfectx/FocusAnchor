@@ -2,6 +2,7 @@
   "src": [
     "pages/Index",
     "pages/FocusPage",
-    "pages/SettingsPage"
+    "pages/SettingsPage",
+    "pages/GuidePage"
   ]
 }
