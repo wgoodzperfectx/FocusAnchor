@@ -37,20 +37,12 @@ struct FocusPage {
 
   build() {
     Column({ space: 8 }) {
-      Row({ space: 8 }) {
-        Button('‹')
-          .width(48)
-          .height(36)
-          .fontSize(20)
-          .backgroundColor('#36503D')
-          .onClick(() => this.getUIContext().getRouter().back())
-        Button(this.lang === 1 ? '设置' : 'More')
-          .width(64)
-          .height(36)
-          .fontSize(10)
-          .backgroundColor('#36503D')
-          .onClick(() => this.getUIContext().getRouter().pushUrl({ url: 'pages/SettingsPage' }))
-      }
+      Button('‹')
+        .width(48)
+        .height(36)
+        .fontSize(20)
+        .backgroundColor('#36503D')
+        .onClick(() => this.getUIContext().getRouter().back())
       Text(this.lang === 1 ? '心率监测' : 'Heart rate')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)

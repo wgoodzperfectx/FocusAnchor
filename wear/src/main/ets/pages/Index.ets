@@ -658,6 +658,11 @@ struct Index {
     });
   }
 
+  private openSettings(): void {
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/SettingsPage' }).catch(() => {
+    });
+  }
+
   private openFlashInput(): void {
     this.flashEditing = true;
     // Focus the existing system input immediately after the conditional field enters the tree.
@@ -747,11 +752,14 @@ struct Index {
         .fontColor('#B9C8BD')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      Text(this.lang === 1 ? '心率监测 ›' : 'Heart rate ›')
-        .fontSize(10)
-        .fontColor('#A6D895')
-        .height(24)
-        .onClick(() => this.openFocus())
+      Row({ space: 16 }) {
+        Text(this.lang === 1 ? '心率 ›' : 'Heart ›')
+          .fontSize(10).fontColor('#A6D895').height(24)
+          .onClick(() => this.openFocus())
+        Text(this.lang === 1 ? '设置' : 'Settings')
+          .fontSize(10).fontColor('#B9C8BD').height(24)
+          .onClick(() => this.openSettings())
+      }
     }
     .width(this.contentW())
     .justifyContent(FlexAlign.Center)
@@ -850,29 +858,17 @@ struct Index {
 
   @Builder
   pageDots() {
-    Row({ space: 8 }) {
-      Button(this.lang === 1 ? '当前一步' : 'Step')
-        .height(36)
-        .layoutWeight(1)
-        .fontSize(11)
-        .backgroundColor(this.currentIndex === 0 ? '#4A7C59' : '#36503D')
-        .onClick(() => {
-          this.currentIndex = 0;
-          this.swiperController.changeIndex(0, true);
-        })
-      Button(this.lang === 1 ? '闪念' : 'Note')
-        .height(36)
-        .layoutWeight(1)
-        .fontSize(11)
-        .backgroundColor(this.currentIndex === 1 ? '#4A7C59' : '#36503D')
-        .onClick(() => {
-          this.currentIndex = 1;
-          this.swiperController.changeIndex(1, true);
-        })
-    }
-    .justifyContent(FlexAlign.Center)
+    Button(this.currentIndex === 0 ?
+      (this.lang === 1 ? '记闪念' : 'Quick note') :
+      (this.lang === 1 ? '‹ 返回当前一步' : '‹ Back to step'))
     .width('100%')
-    .height(38)
+    .height(40)
+    .fontSize(12)
+    .backgroundColor(this.currentIndex === 0 ? '#4A7C59' : '#36503D')
+    .onClick(() => {
+      this.currentIndex = this.currentIndex === 0 ? 1 : 0;
+      this.swiperController.changeIndex(this.currentIndex, true);
+    })
   }
 
   build() {
