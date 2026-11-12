@@ -35,6 +35,42 @@ export function primaryStepEvent(status: string, paused: boolean): 'start' | 'pa
 export type WearMonitorState = 'CONNECTING' | 'READING' | 'MONITORING' |
   'SIGNAL_UNSTABLE' | 'RECONNECTING' | 'STOPPED' | 'UNKNOWN';
 
+export type WearInteractionState = 'IDLE' | 'LISTENING' | 'BREAKING_DOWN' | 'AWAITING_CONFIRMATION' |
+  'FIRST_STEP' | 'IN_PROGRESS' | 'PAUSED' | 'STEP_COMPLETE';
+
+export type WearCompanionState = 'STABLE' | 'FLUCTUATING' | 'SUPPORT_REQUESTED' | 'UNKNOWN';
+
+/** P1 interaction art selected by the real UI state; no timing or random rotation. */
+export function interactionVisualId(state: WearInteractionState): string {
+  switch (state) {
+    case 'LISTENING': return 'status_listening';
+    case 'BREAKING_DOWN': return 'status_breaking_down';
+    case 'AWAITING_CONFIRMATION': return 'status_awaiting_confirmation';
+    case 'FIRST_STEP': return 'status_first_step';
+    case 'IN_PROGRESS': return 'status_in_progress';
+    case 'PAUSED': return 'status_paused';
+    case 'STEP_COMPLETE': return 'status_step_complete';
+    default: return 'status_ready';
+  }
+}
+
+/** P3 user state is consumed only when a trusted producer supplies it. */
+export function companionVisualId(state: WearCompanionState): string {
+  switch (state) {
+    case 'STABLE': return 'fa_companion_stable';
+    case 'FLUCTUATING': return 'fa_companion_fluctuating';
+    case 'SUPPORT_REQUESTED': return 'fa_companion_support_requested';
+    default: return 'status_ready';
+  }
+}
+
+export function companionStateLabel(state: WearCompanionState, chinese: boolean): string {
+  if (state === 'STABLE') return chinese ? '专注稳定' : 'Focus stable';
+  if (state === 'FLUCTUATING') return chinese ? '状态波动' : 'State fluctuating';
+  if (state === 'SUPPORT_REQUESTED') return chinese ? '需要小步伙伴' : 'Support requested';
+  return chinese ? '用户状态未知' : 'User state unavailable';
+}
+
 /** Read-only handoff shape for the device owner. No producer is connected in V3.2. */
 export interface WearMonitorSnapshot {
   state: WearMonitorState;

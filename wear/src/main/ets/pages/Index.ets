@@ -3,7 +3,10 @@ import { distributedKVStore } from '@kit.ArkData';
 import { preferences } from '@kit.ArkData';
 import { WearActionEvent, WearSyncQueue, shouldAdoptPhoneProjection } from '../services/WearSyncQueue';
 import { WearFlashNote, WearFlashQueue, flashIdForSequence } from '../services/WearFlashNoteService';
-import { WearFlashUiState, flashTransportState, flashUiLabel, primaryStepEvent, selectCurrentAction } from '../services/WearUiState';
+import { WearCompanionState, WearFlashUiState, WearInteractionState, companionStateLabel, companionVisualId,
+  flashTransportState, flashUiLabel, interactionVisualId, primaryStepEvent, selectCurrentAction } from
+  '../services/WearUiState';
+import { wearVisualResource } from '../services/WearVisualService';
 
 interface WearFocusStep {
   text: string;
@@ -42,6 +45,8 @@ interface TaskSyncBundle {
   tasks: WearTask[];
   source?: string;
   currentActionId?: string;
+  /** Optional phone-owned user state; consumed when present, not inferred on the watch. */
+  companionState?: WearCompanionState;
 }
 
 /** Round-watch safe insets (avoid clipping at bezel). */
@@ -58,6 +63,7 @@ struct Index {
   @State currentIndex: number = 0;
   @State lang: number = 0;
   @State currentActionId: string = '';
+  @State companionState: WearCompanionState = 'UNKNOWN';
   @State showStepFeedback: boolean = false;
   @State pageSize: number = 200;
   @State pausedActionId: string = '';
@@ -334,8 +340,11 @@ struct Index {
     const obj = parsed as TaskSyncBundle;
     const tasks = Array.isArray(obj.tasks) ? this.normalizeList(obj.tasks) : [];
     const updatedAt = typeof obj.updatedAt === 'number' ? obj.updatedAt : 0;
+    const companionState = ['STABLE', 'FLUCTUATING', 'SUPPORT_REQUESTED'].includes(obj.companionState ?? '') ?
+      obj.companionState : 'UNKNOWN';
     return { updatedAt, tasks, source: obj.source,
-      currentActionId: typeof obj.currentActionId === 'string' ? obj.currentActionId : undefined };
+      currentActionId: typeof obj.currentActionId === 'string' ? obj.currentActionId : undefined,
+      companionState: companionState };
   }
 
   private normalizeList(list: WearTask[]): WearTask[] {
@@ -381,6 +390,7 @@ struct Index {
       if (shouldAdoptPhoneProjection(bundle, this.localStamp)) {
         this.applyTaskList(bundle.tasks);
         this.currentActionId = bundle.currentActionId ?? '';
+        this.companionState = bundle.companionState ?? 'UNKNOWN';
         if (this.pausedActionId && this.currentStepTask()?.focusStep?.actionId !== this.pausedActionId) {
           this.pausedActionId = '';
         }
@@ -663,16 +673,12 @@ struct Index {
   @Builder
   homePage() {
     Column({ space: 4 }) {
-      Image(this.currentStepTask()?.focusStep?.status === 'in_progress' ?
-        (this.pausedActionId === this.currentStepTask()?.focusStep?.actionId ?
-          $r('app.media.status_paused') : $r('app.media.status_in_progress')) :
-        (this.currentStepTask() ? $r('app.media.status_first_step') : $r('app.media.status_ready')))
-        .width(52)
-        .height(42)
+      Image(wearVisualResource(this.homeVisualId()))
+        .width(112)
+        .height(88)
         .objectFit(ImageFit.Contain)
-        .backgroundColor('#E8EFE6')
-        .borderRadius(21)
-        .onClick(() => this.openFocus())
+        .backgroundColor('#F3F5F0')
+        .borderRadius(18)
       if (this.currentStepTask()?.focusStep) {
         Text(this.currentStepTask()?.focusStep?.text ?? '')
           .fontSize(13)
@@ -728,10 +734,15 @@ struct Index {
           .fontSize(14)
           .fontColor(Color.White)
           .textAlign(TextAlign.Center)
-        Text(this.lang === 1 ? '请在手机选择第一小步' : 'Choose a first step on phone')
+        Text(companionStateLabel(this.companionState, this.lang === 1))
           .fontSize(10)
           .fontColor('#B9C8BD')
           .maxLines(2)
+          .textAlign(TextAlign.Center)
+        Text(this.lang === 1 ? '请在手机选择第一小步' : 'Choose a first step on phone')
+          .fontSize(9)
+          .fontColor('#B9C8BD')
+          .maxLines(1)
           .textAlign(TextAlign.Center)
       }
       Text(this.statusText)
@@ -739,7 +750,7 @@ struct Index {
         .fontColor('#B9C8BD')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      Text(this.lang === 1 ? '监测与设置 ›' : 'Monitor & settings ›')
+      Text(this.lang === 1 ? '心率监测 ›' : 'Heart rate ›')
         .fontSize(10)
         .fontColor('#A6D895')
         .height(24)
@@ -748,6 +759,16 @@ struct Index {
     .width(this.contentW())
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+  }
+
+  private homeVisualId(): string {
+    const step = this.currentStepTask()?.focusStep;
+    if (!step) return companionVisualId(this.companionState);
+    if (step.status === 'in_progress') {
+      return interactionVisualId(this.pausedActionId === step.actionId ? 'PAUSED' : 'IN_PROGRESS');
+    }
+    if (step.status === 'completed') return interactionVisualId('STEP_COMPLETE');
+    return interactionVisualId('FIRST_STEP');
   }
 
 
@@ -767,6 +788,10 @@ struct Index {
         .fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
       if (this.flashEditing) {
+        Image(wearVisualResource(interactionVisualId('LISTENING')))
+          .width(88)
+          .height(66)
+          .objectFit(ImageFit.Contain)
         TextInput({ text: this.flashDraft, placeholder: this.tx('flash_hint') })
           .id('flashDraftInput')
           .defaultFocus(true)

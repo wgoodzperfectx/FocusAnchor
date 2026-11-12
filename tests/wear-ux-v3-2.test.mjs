@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as ui from '../wear/src/main/ets/services/WearUiState.ts';
 import { selectCurrentAction, primaryStepEvent, monitorVisualId, monitorSourceLabel, monitorStateLabel,
   resolveMonitorSnapshot, flashTransportState, flashUiLabel } from
   '../wear/src/main/ets/services/WearUiState.ts';
@@ -54,6 +55,20 @@ test('all six monitoring states have a distinct visual; unknown does not imply m
   assert.equal(monitorSourceLabel('SIMULATED', true), '模拟数据 · 不推断专注');
   assert.equal(monitorSourceLabel('UNAVAILABLE', true), '设备状态未提供');
   assert.equal(monitorVisualId('UNKNOWN'), 'status_ready');
+});
+
+test('the eight interaction states and three user states resolve to their formal character assets', () => {
+  assert.equal(typeof ui.interactionVisualId, 'function');
+  assert.equal(typeof ui.companionVisualId, 'function');
+  assert.deepEqual(['IDLE', 'LISTENING', 'BREAKING_DOWN', 'AWAITING_CONFIRMATION', 'FIRST_STEP',
+    'IN_PROGRESS', 'PAUSED', 'STEP_COMPLETE'].map(state => ui.interactionVisualId(state)), [
+    'status_ready', 'status_listening', 'status_breaking_down', 'status_awaiting_confirmation',
+    'status_first_step', 'status_in_progress', 'status_paused', 'status_step_complete'
+  ]);
+  assert.deepEqual(['STABLE', 'FLUCTUATING', 'SUPPORT_REQUESTED', 'UNKNOWN'].map(state =>
+    ui.companionVisualId(state)), [
+    'fa_companion_stable', 'fa_companion_fluctuating', 'fa_companion_support_requested', 'status_ready'
+  ]);
 });
 
 test('flash copy separates local save, pending, ACK and both failures', () => {
