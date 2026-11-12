@@ -1,7 +1,7 @@
 import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 
-const SAFE: number = 28;
+const SAFE: number = 24;
 
 @Entry
 @Component
@@ -67,15 +67,12 @@ struct SettingsPage {
   }
 
   build() {
-    Column({ space: 10 }) {
-      Text('<')
-        .fontSize(16)
-        .fontColor(Color.White)
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .textAlign(TextAlign.Center)
-        .backgroundColor('#444444')
+    Column({ space: 8 }) {
+      Button('‹')
+        .fontSize(20)
+        .width(48)
+        .height(36)
+        .backgroundColor('#36503D')
         .onClick(() => this.getUIContext().getRouter().back())
 
       Text(`${this.label('settings')}${this.tick >= 0 ? '' : ''}`)
@@ -87,7 +84,7 @@ struct SettingsPage {
 
       Text(this.label('language'))
         .fontSize(11)
-        .fontColor('#AAAAAA')
+        .fontColor('#B9C8BD')
         .textAlign(TextAlign.Center)
         .width('100%')
 
@@ -95,32 +92,43 @@ struct SettingsPage {
         Text(this.label('en'))
           .fontSize(12)
           .fontColor(Color.White)
-          .width(56)
-          .height(56)
-          .borderRadius(28)
+          .width(52)
+          .height(42)
+          .borderRadius(21)
           .textAlign(TextAlign.Center)
-          .backgroundColor(this.lang === 0 ? '#666666' : '#3A3A3A')
+          .backgroundColor(this.lang === 0 ? '#4A7C59' : '#36503D')
           .border({ width: this.lang === 0 ? 1.5 : 0, color: Color.White })
           .onClick(async () => await this.setLang(0))
         Text(this.label('zh'))
           .fontSize(12)
           .fontColor(Color.White)
-          .width(56)
-          .height(56)
-          .borderRadius(28)
+          .width(52)
+          .height(42)
+          .borderRadius(21)
           .textAlign(TextAlign.Center)
-          .backgroundColor(this.lang === 1 ? '#666666' : '#3A3A3A')
+          .backgroundColor(this.lang === 1 ? '#4A7C59' : '#36503D')
           .border({ width: this.lang === 1 ? 1.5 : 0, color: Color.White })
           .onClick(async () => await this.setLang(1))
       }
       .justifyContent(FlexAlign.Center)
       .width('100%')
+
+      Text(this.lang === 1 ? '设备连接：未知' : 'Device: unknown')
+        .fontSize(10)
+        .fontColor('#B9C8BD')
+        .textAlign(TextAlign.Center)
+      Text(this.lang === 1 ? '语音权限：由系统输入法管理，状态未验证' :
+        'Voice permission: system keyboard; unverified')
+        .fontSize(9)
+        .fontColor('#B9C8BD')
+        .maxLines(2)
+        .textAlign(TextAlign.Center)
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .padding(SAFE)
-    .backgroundColor('#2A2A2A')
+    .backgroundColor('#202420')
   }
 }

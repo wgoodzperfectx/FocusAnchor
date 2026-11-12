@@ -3,6 +3,7 @@ import { distributedKVStore } from '@kit.ArkData';
 import { preferences } from '@kit.ArkData';
 import { WearActionEvent, WearSyncQueue, shouldAdoptPhoneProjection } from '../services/WearSyncQueue';
 import { WearFlashNote, WearFlashQueue, flashIdForSequence } from '../services/WearFlashNoteService';
+import { WearFlashUiState, flashTransportState, flashUiLabel, primaryStepEvent, selectCurrentAction } from '../services/WearUiState';
 
 interface WearFocusStep {
   text: string;
@@ -40,6 +41,7 @@ interface TaskSyncBundle {
   updatedAt: number;
   tasks: WearTask[];
   source?: string;
+  currentActionId?: string;
 }
 
 /** Round-watch safe insets (avoid clipping at bezel). */
@@ -55,23 +57,16 @@ struct Index {
   @State statusText: string = '';
   @State currentIndex: number = 0;
   @State lang: number = 0;
-  @State clockText: string = '00:00';
-  @State bpm: number = 78;
-  @State editing: boolean = false;
-  @State editId: string = '';
-  @State editTitle: string = '';
-  @State editPriority: number = 2;
-  @State editDueOffsetDays: number = 1;
-  @State isNew: boolean = false;
+  @State currentActionId: string = '';
+  @State showStepFeedback: boolean = false;
   @State pageSize: number = 200;
   @State pausedActionId: string = '';
   @State syncUnavailable: boolean = false;
   @State flashEditing: boolean = false;
   @State flashDraft: string = '';
-  @State flashStatusText: string = '';
+  @State flashUiState: WearFlashUiState = 'IDLE';
   @State flashPendingCount: number = 0;
   private kvStore: distributedKVStore.SingleKVStore | undefined = undefined;
-  private clockId: number = -1;
   private pref: preferences.Preferences | undefined = undefined;
   private localStamp: number = 0;
   private writing: boolean = false;
@@ -86,28 +81,12 @@ struct Index {
 
   aboutToAppear(): void {
     this.initLocal().then(() => this.initSync());
-    this.tickClock();
-    this.clockId = setInterval(() => this.tickClock(), 1000);
-  }
-
-  aboutToDisappear(): void {
-    if (this.clockId !== -1) {
-      clearInterval(this.clockId);
-      this.clockId = -1;
-    }
   }
 
   onPageShow(): void {
     this.loadLang();
     this.flushActionQueue();
     this.flushFlashQueue();
-  }
-
-  private tickClock(): void {
-    const now = new Date();
-    const hh = now.getHours().toString().padStart(2, '0');
-    const mm = now.getMinutes().toString().padStart(2, '0');
-    this.clockText = `${hh}:${mm}`;
   }
 
   /** Content width inside circular safe zone (~70% of diameter). */
@@ -274,9 +253,7 @@ struct Index {
         await this.pref.put('flash_device_id', this.flashDeviceId);
         await this.pref.flush();
       }
-      if (this.flashPendingCount > 0) {
-        this.flashStatusText = this.tx('sync_pending');
-      }
+      if (this.flashPendingCount > 0) this.flashUiState = 'PENDING';
       if (this.actionQueue.pending().length > 0) {
         this.statusText = this.tx('sync_pending');
       }
@@ -345,6 +322,7 @@ struct Index {
     } catch (error) {
       this.syncUnavailable = true;
       this.statusText = this.tx('sync_fail');
+      if (this.flashQueue.pending().length > 0) this.flashUiState = 'SYNC_FAILED';
     }
   }
 
@@ -356,7 +334,8 @@ struct Index {
     const obj = parsed as TaskSyncBundle;
     const tasks = Array.isArray(obj.tasks) ? this.normalizeList(obj.tasks) : [];
     const updatedAt = typeof obj.updatedAt === 'number' ? obj.updatedAt : 0;
-    return { updatedAt, tasks, source: obj.source };
+    return { updatedAt, tasks, source: obj.source,
+      currentActionId: typeof obj.currentActionId === 'string' ? obj.currentActionId : undefined };
   }
 
   private normalizeList(list: WearTask[]): WearTask[] {
@@ -401,6 +380,7 @@ struct Index {
       const bundle = this.parseBundle(text);
       if (shouldAdoptPhoneProjection(bundle, this.localStamp)) {
         this.applyTaskList(bundle.tasks);
+        this.currentActionId = bundle.currentActionId ?? '';
         if (this.pausedActionId && this.currentStepTask()?.focusStep?.actionId !== this.pausedActionId) {
           this.pausedActionId = '';
         }
@@ -423,7 +403,7 @@ struct Index {
       }
     } catch (error) {
       this.syncUnavailable = true;
-      this.statusText = this.tx('sync_empty');
+      this.statusText = this.tx('sync_fail');
     }
   }
 
@@ -535,14 +515,23 @@ struct Index {
     await this.serializeFlashMutation(async () => this.flushFlashQueueNow());
   }
 
+  private async retryFlashSync(): Promise<void> {
+    if (this.kvStore) {
+      await this.flushFlashQueue();
+    } else {
+      await this.initSync();
+    }
+  }
+
   private async flushFlashQueueNow(): Promise<void> {
     if (!this.kvStore || this.flashQueue.pending().length === 0) {
       return;
     }
     try {
       await this.kvStore.put('flash_notes_sync', JSON.stringify(this.flashQueue.pending()));
+      this.flashUiState = flashTransportState(true);
     } catch (_e) {
-      this.flashStatusText = this.tx('sync_pending');
+      this.flashUiState = flashTransportState(false);
     }
   }
 
@@ -566,8 +555,7 @@ struct Index {
         }
         if (changed) {
           await this.saveFlashQueue();
-          this.flashStatusText = this.flashQueue.pending().length > 0 ?
-            this.tx('sync_pending') : this.tx('sync_ok');
+          this.flashUiState = this.flashQueue.pending().length > 0 ? 'PENDING' : 'SYNCED';
         }
       } catch (_e) {
         // The durable queue remains pending until a phone acknowledgement arrives.
@@ -579,7 +567,7 @@ struct Index {
     await this.serializeFlashMutation(async () => {
       const content = this.flashDraft.trim();
       if (!content || !this.pref || !this.flashDeviceId) {
-        this.flashStatusText = this.tx('sync_fail');
+        this.flashUiState = 'SAVE_FAILED';
         return;
       }
       const note: WearFlashNote = {
@@ -595,10 +583,11 @@ struct Index {
         await this.saveFlashQueue();
         this.flashDraft = '';
         this.flashEditing = false;
-        this.flashStatusText = this.tx('sync_pending');
+        this.flashUiState = 'LOCAL';
         await this.flushFlashQueueNow();
+        if (this.flashUiState === 'LOCAL') this.flashUiState = 'PENDING';
       } catch (_e) {
-        this.flashStatusText = this.tx('sync_fail');
+        this.flashUiState = 'SAVE_FAILED';
       }
     });
   }
@@ -617,9 +606,7 @@ struct Index {
   }
 
   private currentStepTask(): WearTask | undefined {
-    return this.tasks.find((task: WearTask) => !!task.focusStep &&
-      task.focusStep.status !== 'completed') ??
-      this.tasks.find((task: WearTask) => !!task.focusStep);
+    return selectCurrentAction(this.tasks, this.currentActionId || undefined);
   }
 
   private async actOnCurrentStep(): Promise<void> {
@@ -628,8 +615,7 @@ struct Index {
       return;
     }
     const step = current.focusStep;
-    const type = step.status === 'in_progress' ?
-      (this.pausedActionId === step.actionId ? 'resume' : 'complete') : 'start';
+    const type = primaryStepEvent(step.status, this.pausedActionId === step.actionId);
     await this.sendStepEvent(type);
   }
 
@@ -662,392 +648,177 @@ struct Index {
     });
   }
 
-  private openGuide(): void {
-    this.getUIContext().getRouter().pushUrl({ url: 'pages/GuidePage' }).catch(() => {
-    });
-  }
-
-  private openSettings(): void {
-    this.getUIContext().getRouter().pushUrl({ url: 'pages/SettingsPage' }).catch(() => {
-    });
-  }
-
-  private startCreate(): void {
-    this.isNew = true;
-    this.editId = `wear_${Date.now()}`;
-    this.editTitle = '';
-    this.editPriority = 2;
-    this.editDueOffsetDays = 1;
-    this.editing = true;
-  }
-
-  private startEdit(task: WearTask): void {
-    this.isNew = false;
-    this.editId = task.id;
-    this.editTitle = task.title;
-    this.editPriority = task.priority === 1 || task.priority === 3 ? task.priority : 2;
-    if (task.dueAt !== undefined) {
-      const days = Math.max(0, Math.round((task.dueAt - Date.now()) / (24 * 60 * 60 * 1000)));
-      this.editDueOffsetDays = days <= 1 ? 1 : (days <= 3 ? 3 : 7);
-    } else {
-      this.editDueOffsetDays = 1;
-    }
-    this.editing = true;
-  }
-
-  private cyclePriority(): void {
-    if (this.editPriority === 1) {
-      this.editPriority = 2;
-    } else if (this.editPriority === 2) {
-      this.editPriority = 3;
-    } else {
-      this.editPriority = 1;
-    }
-  }
-
-  private cycleDue(): void {
-    if (this.editDueOffsetDays === 1) {
-      this.editDueOffsetDays = 3;
-    } else if (this.editDueOffsetDays === 3) {
-      this.editDueOffsetDays = 7;
-    } else {
-      this.editDueOffsetDays = 1;
-    }
-  }
-
-  private async saveEdit(): Promise<void> {
-    this.editing = false;
-    this.statusText = this.tx('edit_phone');
-  }
-
-  private async markDone(): Promise<void> {
-    this.editing = false;
-    this.statusText = this.tx('edit_phone');
-  }
-
-  private async deleteEdit(): Promise<void> {
-    this.editing = false;
-    this.statusText = this.tx('edit_phone');
+  private openFlashInput(): void {
+    this.flashEditing = true;
+    // Focus the existing system input immediately after the conditional field enters the tree.
+    setTimeout(() => {
+      try {
+        this.getUIContext().getFocusController().requestFocus('flashDraftInput');
+      } catch (_e) {
+        // The field remains available for a direct tap on devices without this focus path.
+      }
+    }, 80);
   }
 
   @Builder
   homePage() {
-    Column({ space: 6 }) {
-      Text(this.tx('title'))
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#C8C8C8')
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
-      Text(this.clockText)
-        .fontSize(34)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
-      Image(this.syncUnavailable ? $r('app.media.fa_monitor_reconnecting') :
-        $r('app.media.fa_monitor_stopped'))
-        .width(26)
-        .height(26)
-
-      Text(`${this.bpm} bpm · ${this.lang === 1 ? '模拟' : 'demo'}`)
-        .fontSize(11)
-        .fontColor('#A8A8A8')
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
+    Column({ space: 4 }) {
+      Image(this.currentStepTask()?.focusStep?.status === 'in_progress' ?
+        (this.pausedActionId === this.currentStepTask()?.focusStep?.actionId ?
+          $r('app.media.status_paused') : $r('app.media.status_in_progress')) :
+        (this.currentStepTask() ? $r('app.media.status_first_step') : $r('app.media.status_ready')))
+        .width(52)
+        .height(42)
+        .objectFit(ImageFit.Contain)
+        .backgroundColor('#E8EFE6')
+        .borderRadius(21)
+        .onClick(() => this.openFocus())
       if (this.currentStepTask()?.focusStep) {
         Text(this.currentStepTask()?.focusStep?.text ?? '')
-          .fontSize(11)
-          .fontColor('#A6D895')
-          .maxLines(2)
-          .textAlign(TextAlign.Center)
-          .width('100%')
-        if (this.currentStepTask()?.focusStep?.status !== 'completed') {
-          Button(this.currentStepTask()?.focusStep?.status === 'in_progress' ?
-            (this.pausedActionId === this.currentStepTask()?.focusStep?.actionId ?
-              (this.lang === 1 ? '继续这一步' : 'Resume') :
-              (this.lang === 1 ? '完成这一步' : 'Complete')) :
-            (this.lang === 1 ? '开始这一步' : 'Start'))
-            .height(30)
-            .fontSize(10)
-            .onClick(() => this.actOnCurrentStep())
-          if (this.currentStepTask()?.focusStep?.status === 'in_progress' &&
-            this.pausedActionId !== this.currentStepTask()?.focusStep?.actionId) {
-            Button(this.lang === 1 ? '暂停' : 'Pause')
-              .height(26)
-              .fontSize(10)
-              .onClick(() => this.sendStepEvent('pause'))
-          }
-          Button(this.lang === 1 ? '换一步' : 'Change')
-            .height(26)
-            .fontSize(10)
-            .onClick(() => this.sendStepEvent('change'))
-        }
-      } else {
-        Button(this.tx('focus'))
-          .width(72)
-          .height(72)
-          .borderRadius(36)
           .fontSize(13)
           .fontColor(Color.White)
-          .backgroundColor('#4A4A4A')
-          .border({ width: 1.5, color: '#E8E8E8' })
-          .margin({ top: 4 })
-          .onClick(() => this.openFocus())
+          .fontWeight(FontWeight.Medium)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .textAlign(TextAlign.Center)
+          .width('100%')
+        if (this.currentStepTask()?.focusStep?.generationSource === 'MOCK' ||
+          this.currentStepTask()?.focusStep?.generationSource === 'RULE') {
+          Text(this.currentStepTask()?.focusStep?.generationSource === 'MOCK' ?
+            (this.lang === 1 ? '本地模拟步骤' : 'Local mock step') :
+            (this.lang === 1 ? '规则生成步骤' : 'Rule step'))
+            .fontSize(9)
+            .fontColor('#B9C8BD')
+        }
+        if (this.showStepFeedback) {
+          Row({ space: 6 }) {
+            Button(this.lang === 1 ? '完成' : 'Done')
+              .height(38)
+              .layoutWeight(1)
+              .onClick(() => { this.sendStepEvent('complete'); this.showStepFeedback = false; })
+            Button(this.lang === 1 ? '换一步' : 'Change')
+              .height(38)
+              .layoutWeight(1)
+              .onClick(() => { this.sendStepEvent('change'); this.showStepFeedback = false; })
+          }
+          .width('100%')
+          Text(this.lang === 1 ? '返回主操作' : 'Back to main action')
+            .fontSize(10)
+            .fontColor('#B9C8BD')
+            .height(22)
+            .onClick(() => { this.showStepFeedback = false; })
+        } else {
+          Button(this.currentStepTask()?.focusStep?.status === 'in_progress' ?
+            (this.pausedActionId === this.currentStepTask()?.focusStep?.actionId ?
+              (this.lang === 1 ? '继续' : 'Resume') : (this.lang === 1 ? '暂停' : 'Pause')) :
+            (this.lang === 1 ? '开始' : 'Start'))
+            .width('100%')
+            .height(40)
+            .fontSize(14)
+            .backgroundColor('#4A7C59')
+            .onClick(() => this.actOnCurrentStep())
+          Text(this.lang === 1 ? '完成 / 换一步 ···' : 'Complete / Change ···')
+            .fontSize(10)
+            .fontColor('#B9C8BD')
+            .height(22)
+            .onClick(() => { this.showStepFeedback = true; })
+        }
+      } else {
+        Text(this.lang === 1 ? '暂无当前一步' : 'No current step')
+          .fontSize(14)
+          .fontColor(Color.White)
+          .textAlign(TextAlign.Center)
+        Text(this.lang === 1 ? '请在手机选择第一小步' : 'Choose a first step on phone')
+          .fontSize(10)
+          .fontColor('#B9C8BD')
+          .maxLines(2)
+          .textAlign(TextAlign.Center)
       }
-
-      Text(this.lang === 1 ? '引导一步 ›' : 'Guided step ›')
-        .fontSize(11)
-        .fontColor('#A6D895')
-        .textAlign(TextAlign.Center)
-        .onClick(() => this.openGuide())
-
       Text(this.statusText)
         .fontSize(9)
-        .fontColor('#888888')
+        .fontColor('#B9C8BD')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .textAlign(TextAlign.Center)
-        .width('100%')
-        .margin({ top: 2 })
+      Text(this.lang === 1 ? '监测与设置 ›' : 'Monitor & settings ›')
+        .fontSize(10)
+        .fontColor('#A6D895')
+        .height(24)
+        .onClick(() => this.openFocus())
     }
     .width(this.contentW())
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
 
-  @Builder
-  tasksPage() {
-    Column({ space: 4 }) {
-      if (this.editing) {
-        this.editorPanel()
-      } else {
-        Row() {
-          Text(`${this.tx('tasks')} ${this.tasks.length}`)
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-          Text('+')
-            .width(28)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-            .textAlign(TextAlign.Center)
-            .backgroundColor('#555555')
-            .onClick(() => this.startCreate())
-        }
-        .width(this.contentW())
-
-        List({ space: 4 }) {
-          ForEach(this.tasks, (task: WearTask) => {
-            ListItem() {
-              Row({ space: 6 }) {
-                Text(task.title)
-                  .fontSize(11)
-                  .fontColor(Color.White)
-                  .layoutWeight(1)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(`P${task.priority}`)
-                  .fontSize(9)
-                  .fontColor('#CFCFCF')
-              }
-              .width('100%')
-              .height(32)
-              .padding({ left: 10, right: 10 })
-              .backgroundColor('#3A3A3A')
-              .borderRadius(16)
-              .onClick(() => this.startEdit(task))
-            }
-          }, (task: WearTask) => task.id)
-
-          if (this.tasks.length === 0) {
-            ListItem() {
-              Text(this.tx('sync_empty'))
-                .fontSize(11)
-                .fontColor('#888888')
-                .width('100%')
-                .textAlign(TextAlign.Center)
-                .padding({ top: 16, bottom: 16 })
-            }
-          }
-        }
-        .width(this.contentW())
-        .layoutWeight(1)
-        .edgeEffect(EdgeEffect.Spring)
-        .scrollBar(BarState.Off)
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .alignItems(HorizontalAlign.Center)
-    .padding({ top: 2 })
-  }
-
-  @Builder
-  editorPanel() {
-    Scroll() {
-      Column({ space: 5 }) {
-        Text(this.isNew ? this.tx('add') : this.tx('edit'))
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
-          .width('100%')
-          .textAlign(TextAlign.Center)
-
-        TextInput({ text: this.editTitle, placeholder: this.tx('title_hint') })
-          .width('100%')
-          .height(30)
-          .fontSize(11)
-          .fontColor(Color.White)
-          .placeholderColor('#777777')
-          .backgroundColor('#3A3A3A')
-          .borderRadius(15)
-          .padding({ left: 10, right: 10 })
-          .onChange((v: string) => {
-            this.editTitle = v;
-          })
-
-        Row({ space: 6 }) {
-          Button(`P${this.editPriority}`)
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => this.cyclePriority())
-          Button(`${this.editDueOffsetDays}d`)
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => this.cycleDue())
-        }
-        .width('100%')
-
-        Row({ space: 6 }) {
-          Button(this.tx('save'))
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#4A7C59')
-            .onClick(() => {
-              this.saveEdit();
-            })
-          Button(this.tx('cancel'))
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => {
-              this.editing = false;
-            })
-        }
-        .width('100%')
-
-        if (!this.isNew) {
-          Row({ space: 6 }) {
-            Button(this.tx('done'))
-              .layoutWeight(1)
-              .height(26)
-              .borderRadius(13)
-              .fontSize(10)
-              .fontColor(Color.White)
-              .backgroundColor('#555555')
-              .onClick(() => {
-                this.markDone();
-              })
-            Button(this.tx('delete'))
-              .layoutWeight(1)
-              .height(26)
-              .borderRadius(13)
-              .fontSize(10)
-              .fontColor(Color.White)
-              .backgroundColor('#7A3A3A')
-              .onClick(() => {
-                this.deleteEdit();
-              })
-          }
-          .width('100%')
-        }
-      }
-      .width(this.contentW())
-      .padding({ bottom: 8 })
-    }
-    .width('100%')
-    .layoutWeight(1)
-    .scrollBar(BarState.Off)
-    .align(Alignment.Top)
-  }
 
   @Builder
   flashPage() {
-    Column({ space: 8 }) {
+    Column({ space: 4 }) {
+      if (!this.flashEditing && this.flashUiState === 'IDLE') {
+        Image($r('app.media.status_ready'))
+          .width(52)
+          .height(42)
+          .objectFit(ImageFit.Contain)
+          .backgroundColor('#E8EFE6')
+          .borderRadius(21)
+      }
       Text(this.tx('flash'))
-        .fontSize(14)
+        .fontSize(15)
         .fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
       if (this.flashEditing) {
         TextInput({ text: this.flashDraft, placeholder: this.tx('flash_hint') })
+          .id('flashDraftInput')
+          .defaultFocus(true)
           .width('100%')
-          .height(36)
-          .fontSize(11)
+          .height(42)
+          .fontSize(12)
           .fontColor(Color.White)
-          .backgroundColor('#3A3A3A')
-          .borderRadius(18)
-          .onChange((value: string) => {
-            this.flashDraft = value;
-          })
-        Row({ space: 6 }) {
+          .backgroundColor('#36503D')
+          .borderRadius(20)
+          .onChange((value: string) => { this.flashDraft = value; })
+        Text(this.lang === 1 ? '可用系统键盘的麦克风输入' : 'Use the system keyboard microphone')
+          .fontSize(9)
+          .fontColor('#B9C8BD')
+          .maxLines(2)
+          .textAlign(TextAlign.Center)
+        Row({ space: 8 }) {
           Button(this.tx('save'))
             .layoutWeight(1)
-            .height(30)
+            .height(40)
+            .backgroundColor('#4A7C59')
             .onClick(() => this.saveFlashDraft())
           Button(this.tx('cancel'))
             .layoutWeight(1)
-            .height(30)
-            .onClick(() => {
-              this.flashEditing = false;
-            })
+            .height(40)
+            .onClick(() => { this.flashEditing = false; this.flashDraft = ''; })
         }
         .width('100%')
       } else {
-        Button(this.lang === 1 ? '记一条闪念' : 'New quick note')
+        Button(this.lang === 1 ? '语音记闪念' : 'Voice quick note')
           .width('100%')
-          .height(36)
-          .onClick(() => {
-            this.flashEditing = true;
-          })
+          .height(46)
+          .fontSize(14)
+          .backgroundColor('#4A7C59')
+          .onClick(() => this.openFlashInput())
+        if (this.flashUiState === 'IDLE') {
+          Text(this.lang === 1 ? '使用系统输入法，也可打字' : 'System keyboard · typing available')
+            .fontSize(9)
+            .fontColor('#B9C8BD')
+            .textAlign(TextAlign.Center)
+        }
       }
-
-      Text(this.flashStatusText)
+      Text(flashUiLabel(this.flashUiState, this.lang === 1))
         .fontSize(10)
-        .fontColor('#A6D895')
+        .fontColor(this.flashUiState === 'SAVE_FAILED' || this.flashUiState === 'SYNC_FAILED' ?
+          '#F0B184' : '#A6D895')
+        .maxLines(2)
         .textAlign(TextAlign.Center)
-        .width('100%')
-      Text(this.lang === 1 ? `待同步 ${this.flashPendingCount}` :
-        `${this.flashPendingCount} pending`)
-        .fontSize(9)
-        .fontColor('#888888')
-        .textAlign(TextAlign.Center)
-        .width('100%')
+      if (this.flashUiState === 'SYNC_FAILED') {
+        Button(this.lang === 1 ? '重试同步' : 'Retry sync')
+          .height(36)
+          .onClick(() => this.retryFlashSync())
+      }
     }
     .width(this.contentW())
     .height('100%')
@@ -1058,55 +829,35 @@ struct Index {
   @Builder
   pageDots() {
     Row({ space: 8 }) {
-      Circle({ width: 7, height: 7 })
-        .fill(this.currentIndex === 0 ? Color.White : '#666666')
+      Button(this.lang === 1 ? '当前一步' : 'Step')
+        .height(36)
+        .layoutWeight(1)
+        .fontSize(11)
+        .backgroundColor(this.currentIndex === 0 ? '#4A7C59' : '#36503D')
         .onClick(() => {
           this.currentIndex = 0;
           this.swiperController.changeIndex(0, true);
         })
-      Circle({ width: 7, height: 7 })
-        .fill(this.currentIndex === 1 ? Color.White : '#666666')
+      Button(this.lang === 1 ? '闪念' : 'Note')
+        .height(36)
+        .layoutWeight(1)
+        .fontSize(11)
+        .backgroundColor(this.currentIndex === 1 ? '#4A7C59' : '#36503D')
         .onClick(() => {
           this.currentIndex = 1;
           this.swiperController.changeIndex(1, true);
         })
-      Circle({ width: 7, height: 7 })
-        .fill(this.currentIndex === 2 ? Color.White : '#666666')
-        .onClick(() => {
-          this.currentIndex = 2;
-          this.swiperController.changeIndex(2, true);
-        })
     }
     .justifyContent(FlexAlign.Center)
     .width('100%')
-    .height(18)
+    .height(38)
   }
 
   build() {
     Column({ space: 2 }) {
-      // Settings at top-center (round watch safe area)
-      Text('⚙')
-        .fontSize(16)
-        .fontColor(Color.White)
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .textAlign(TextAlign.Center)
-        .backgroundColor('#444444')
-        .alignSelf(ItemAlign.Center)
-        .onClick(() => this.openSettings())
-
       Swiper(this.swiperController) {
         Column() {
           this.homePage()
-        }
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-
-        Column() {
-          this.tasksPage()
         }
         .width('100%')
         .height('100%')
@@ -1128,9 +879,7 @@ struct Index {
       .vertical(false)
       .onChange((index: number) => {
         this.currentIndex = index;
-        if (!this.editing) {
-          this.reloadFromRemote();
-        }
+        this.reloadFromRemote();
       })
 
       this.pageDots()
@@ -1143,7 +892,7 @@ struct Index {
       top: Math.max(10, SAFE_V_TOP - 8),
       bottom: SAFE_V_BOT
     })
-    .backgroundColor('#2A2A2A')
+    .backgroundColor('#202420')
     .onAreaChange((_o: Area, area: Area) => {
       const w = Number(area.width);
       const h = Number(area.height);
