@@ -53,8 +53,8 @@ test('all six monitoring states have a distinct visual; unknown does not imply m
   assert.equal(resolveMonitorSnapshot({ state: 'MONITORING', source: 'REAL', updatedAt: 0 }, 100000).state,
     'UNKNOWN');
   assert.equal(monitorSourceLabel('SIMULATED', true), '模拟数据 · 不推断专注');
-  assert.equal(monitorSourceLabel('UNAVAILABLE', true), '设备状态未提供');
-  assert.equal(monitorVisualId('UNKNOWN'), 'status_ready');
+  assert.equal(monitorSourceLabel('UNAVAILABLE', true), '设备状态未提供 · 占位图');
+  assert.equal(monitorVisualId('UNKNOWN'), 'fa_monitor_stopped');
 });
 
 test('the eight interaction states and three user states resolve to their formal character assets', () => {

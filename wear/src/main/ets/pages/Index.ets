@@ -674,8 +674,8 @@ struct Index {
   homePage() {
     Column({ space: 4 }) {
       Image(wearVisualResource(this.homeVisualId()))
-        .width(112)
-        .height(88)
+        .width(88)
+        .height(68)
         .objectFit(ImageFit.Contain)
         .backgroundColor('#F3F5F0')
         .borderRadius(18)
@@ -734,12 +734,9 @@ struct Index {
           .fontSize(14)
           .fontColor(Color.White)
           .textAlign(TextAlign.Center)
-        Text(companionStateLabel(this.companionState, this.lang === 1))
-          .fontSize(10)
-          .fontColor('#B9C8BD')
-          .maxLines(2)
-          .textAlign(TextAlign.Center)
-        Text(this.lang === 1 ? '请在手机选择第一小步' : 'Choose a first step on phone')
+        Text(this.companionState === 'UNKNOWN' ?
+          (this.lang === 1 ? '状态未知 · 手机选择第一步' : 'State unknown · choose a step on phone') :
+          companionStateLabel(this.companionState, this.lang === 1))
           .fontSize(9)
           .fontColor('#B9C8BD')
           .maxLines(1)

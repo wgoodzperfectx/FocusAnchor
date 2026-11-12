@@ -98,7 +98,9 @@ export function monitorVisualId(state: WearMonitorState): string {
     case 'SIGNAL_UNSTABLE': return 'fa_monitor_signal_unstable';
     case 'RECONNECTING': return 'fa_monitor_reconnecting';
     case 'STOPPED': return 'fa_monitor_stopped';
-    default: return 'status_ready';
+    // Keep the heart-rate route in the P2 visual family when no snapshot exists.
+    // The page labels this stopped artwork as a placeholder, not as device state.
+    default: return 'fa_monitor_stopped';
   }
 }
 
@@ -119,7 +121,7 @@ export function monitorSourceLabel(source: 'REAL' | 'SIMULATED' | 'UNAVAILABLE',
   chinese: boolean): string {
   if (source === 'REAL') return chinese ? '设备数据' : 'Device data';
   if (source === 'SIMULATED') return chinese ? '模拟数据 · 不推断专注' : 'Simulated · no focus inference';
-  return chinese ? '设备状态未提供' : 'Device status unavailable';
+  return chinese ? '设备状态未提供 · 占位图' : 'Device data unavailable · placeholder art';
 }
 
 export type WearFlashUiState = 'IDLE' | 'LOCAL' | 'PENDING' | 'SYNCED' | 'SAVE_FAILED' | 'SYNC_FAILED';

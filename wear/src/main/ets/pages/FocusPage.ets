@@ -56,8 +56,8 @@ struct FocusPage {
         .fontWeight(FontWeight.Medium)
         .fontColor('#B9C8BD')
       Image(wearVisualResource(monitorVisualId(this.monitorState)))
-        .width(176)
-        .height(132)
+        .width(120)
+        .height(74)
         .backgroundColor('#F3F5F0')
         .borderRadius(16)
         .objectFit(ImageFit.Contain)
@@ -68,8 +68,9 @@ struct FocusPage {
         .maxLines(2)
         .textAlign(TextAlign.Center)
       Text(monitorSourceLabel(this.dataSource, this.lang === 1))
-        .fontSize(10)
+        .fontSize(8)
         .fontColor('#B9C8BD')
+        .width('68%')
         .maxLines(2)
         .textAlign(TextAlign.Center)
     }
@@ -77,7 +78,7 @@ struct FocusPage {
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .padding(28)
+    .padding(20)
     .backgroundColor('#202420')
   }
 }
