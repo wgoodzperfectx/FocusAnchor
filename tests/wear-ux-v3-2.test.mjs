@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as ui from '../wear/src/main/ets/services/WearUiState.ts';
-import { selectCurrentAction, primaryStepEvent, monitorVisualId, monitorSourceLabel, monitorStateLabel,
+import { selectCurrentAction, selectCompletedAction, primaryStepEvent, monitorVisualId, monitorSourceLabel,
+  monitorStateLabel,
   resolveMonitorSnapshot, flashTransportState, flashUiLabel } from
   '../wear/src/main/ets/services/WearUiState.ts';
 import { WearFlashQueue } from '../wear/src/main/ets/services/WearFlashNoteService.ts';
@@ -25,6 +26,15 @@ test('a confirmed action ID selects only its matching phone projection', () => {
   const stale = { ...a, focusStep: { ...a.focusStep, revision: undefined } };
   assert.equal(selectCurrentAction([stale], 'a1'), undefined);
   assert.equal(selectCurrentAction([a, { ...a, id: 'duplicate' }], 'a1'), undefined);
+});
+
+test('completion art requires the phone to confirm the exact Action', () => {
+  const done = { ...task('a', 'a1', 'completed'), completed: true };
+  assert.equal(selectCurrentAction([done], 'a1'), undefined);
+  assert.equal(selectCompletedAction([done], 'a1'), done);
+  assert.equal(selectCompletedAction([done]), undefined);
+  assert.equal(selectCompletedAction([done], 'other'), undefined);
+  assert.equal(selectCompletedAction([done, { ...done, id: 'duplicate' }], 'a1'), undefined);
 });
 
 test('primary action is start, pause or resume; completion stays secondary', () => {

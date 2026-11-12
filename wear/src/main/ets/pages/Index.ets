@@ -4,7 +4,8 @@ import { preferences } from '@kit.ArkData';
 import { WearActionEvent, WearSyncQueue, shouldAdoptPhoneProjection } from '../services/WearSyncQueue';
 import { WearFlashNote, WearFlashQueue, flashIdForSequence } from '../services/WearFlashNoteService';
 import { WearCompanionState, WearFlashUiState, WearInteractionState, companionStateLabel, companionVisualId,
-  flashTransportState, flashUiLabel, interactionVisualId, primaryStepEvent, selectCurrentAction } from
+  flashTransportState, flashUiLabel, interactionVisualId, primaryStepEvent, selectCompletedAction,
+  selectCurrentAction } from
   '../services/WearUiState';
 import { WearCompanion } from '../components/WearCompanion';
 
@@ -621,6 +622,10 @@ struct Index {
     return selectCurrentAction(this.tasks, this.currentActionId || undefined);
   }
 
+  private confirmedDoneTask(): WearTask | undefined {
+    return selectCompletedAction(this.allTasks, this.currentActionId || undefined);
+  }
+
   private async actOnCurrentStep(): Promise<void> {
     const current = this.currentStepTask();
     if (!current?.focusStep || current.focusStep.status === 'completed') {
@@ -730,6 +735,15 @@ struct Index {
             .height(22)
             .onClick(() => { this.showStepFeedback = true; })
         }
+      } else if (this.confirmedDoneTask()) {
+        Text(this.lang === 1 ? '这一步完成' : 'Step complete')
+          .fontSize(14)
+          .fontColor($r('app.color.text_primary'))
+          .textAlign(TextAlign.Center)
+        Text(this.lang === 1 ? '下一步在手机确认' : 'Choose next on phone')
+          .fontSize(9)
+          .fontColor($r('app.color.text_secondary'))
+          .textAlign(TextAlign.Center)
       } else {
         Text(this.lang === 1 ? '在手机选择第一步' : 'Choose a step on phone')
           .fontSize(14)
@@ -766,12 +780,12 @@ struct Index {
 
   private homeVisualId(): string {
     const step = this.currentStepTask()?.focusStep;
+    if (!step && this.confirmedDoneTask()) return interactionVisualId('STEP_COMPLETE');
     if (!step) return companionVisualId(this.companionState);
     if (step.status === 'paused') return interactionVisualId('PAUSED');
     if (step.status === 'in_progress') {
       return interactionVisualId(this.pausedActionId === step.actionId ? 'PAUSED' : 'IN_PROGRESS');
     }
-    if (step.status === 'completed') return interactionVisualId('STEP_COMPLETE');
     return interactionVisualId('FIRST_STEP');
   }
 

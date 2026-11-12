@@ -25,7 +25,7 @@ Motion A：`WearCompanion` 只在 `visualId` 改变时做 220ms opacity 0.76→1
 | T01 无任务 | 模拟器空状态截图 `evidence/watch-v3.3/home-empty-zh.jpeg`；自动化检查空/不完整/歧义投影无虚构步骤 | 手机真实空投影跨设备送达 |
 | T02 READY Action | 自动化检查唯一 `actionId` 选择及 FIRST_STEP 映射 | 模拟器真实手机投影 |
 | T03 ACTIVE→PAUSED→ACTIVE | 自动化检查 start/pause/resume 事件与主按钮映射；修复 `paused` 文案和角色 | 实际手机 ACK 往返 |
-| T04 DONE 成功/失败 | 自动化检查 complete 事件；页面完成仅发送操作，未在 ACK 前称权威完成 | 成功/拒绝 ACK 的模拟器实测 |
+| T04 DONE 成功/失败 | 自动化检查 complete 事件；只有手机投影以相同 `currentActionId` 明确确认 completed 时才显示完成角色，未确认则维持等待/空状态 | 成功/拒绝 ACK 的模拟器实测；手机可能在完成后清除 `currentActionId`，需统一契约 |
 | T05 录音/取消/权限拒绝 | 模拟器“说一句”直达系统输入法麦克风，截图 `evidence/watch-v3.3/system-voice-input.jpeg`；实测可启动语音界面、无语音识别失败后退出；取消返回闪念页 | 首次授权弹窗和拒绝路径；输入法没有状态回调 |
 | T06 本地保存/待同步 | 自动化检查本地队列及 pending 文案 | 模拟器持久化后重启、真实手机链路 |
 | T07 ACK | 自动化检查匹配 ACK 才从队列移除并显示“同步已确认” | 实际双端 ACK |
@@ -40,7 +40,7 @@ Motion A：`WearCompanion` 只在 `visualId` 改变时做 220ms opacity 0.76→1
 ## 验证命令
 
 - `python tests/test_wear_v33_assets.py`：9 张资源通过。
-- `node --test tests/wear-ux-v3-2.test.mjs`：9/9 通过。
+- `node --test tests/wear-ux-v3-2.test.mjs`：10/10 通过。
 - `hvigorw.bat assembleHap -p product=default -p buildMode=debug --no-daemon`：构建通过；未配置签名，模拟器可安装 unsigned HAP。
 
 截图来自 HarmonyOS 466×466 模拟器的 `snapshot_display`，不是设计稿或真机证据。实际心率读数、权限拒绝、Action ACK、闪念 ACK 和小艺 ASR 回调均未验证。合并时重点核对主工作树/UX V3.1 的 `Index.ets`、`FocusPage.ets`、`WearUiState.ts` 与同步契约差异；本分支不直接覆盖其他路线。

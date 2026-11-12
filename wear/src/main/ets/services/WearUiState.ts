@@ -27,6 +27,14 @@ export function selectCurrentAction<T extends WearTaskLike>(tasks: T[], currentA
   return ready.length === 1 ? ready[0] : undefined;
 }
 
+/** Completion art requires an explicit phone-owned Action ID and completed projection. */
+export function selectCompletedAction<T extends WearTaskLike>(tasks: T[], currentActionId?: string): T | undefined {
+  if (!currentActionId) return undefined;
+  const exact = tasks.filter((task: T) => task.focusStep?.actionId === currentActionId &&
+    !!task.focusStep?.revision && task.focusStep.status === 'completed');
+  return exact.length === 1 ? exact[0] : undefined;
+}
+
 export function primaryStepEvent(status: string, paused: boolean): 'start' | 'pause' | 'resume' {
   if (paused || status === 'paused') return 'resume';
   return status === 'in_progress' ? 'pause' : 'start';
