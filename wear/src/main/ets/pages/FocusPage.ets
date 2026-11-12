@@ -2,7 +2,7 @@ import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { WearMonitorSnapshot, WearMonitorState, monitorSourceLabel, monitorStateLabel, monitorVisualId,
   resolveMonitorSnapshot } from '../services/WearUiState';
-import { wearVisualResource } from '../services/WearVisualService';
+import { WearCompanion } from '../components/WearCompanion';
 
 /** Display-only monitor consumer. A device producer has not supplied a trusted snapshot yet. */
 @Entry
@@ -11,6 +11,7 @@ struct FocusPage {
   @State lang: number = 0;
   @State monitorState: WearMonitorState = 'UNKNOWN';
   @State dataSource: 'REAL' | 'SIMULATED' | 'UNAVAILABLE' = 'UNAVAILABLE';
+  @State reducedMotion: boolean = false;
 
   aboutToAppear(): void {
     this.loadLang();
@@ -30,6 +31,7 @@ struct FocusPage {
       const pref = await preferences.getPreferences(context, 'wear_focux');
       const value = await pref.get('language', 0);
       this.lang = value === 1 ? 1 : 0;
+      this.reducedMotion = (await pref.get('reduce_motion', false)) === true;
     } catch (_e) {
       this.lang = 0;
     }
@@ -41,27 +43,26 @@ struct FocusPage {
         .width(48)
         .height(36)
         .fontSize(20)
-        .backgroundColor('#36503D')
+        .backgroundColor($r('app.color.surface'))
         .onClick(() => this.getUIContext().getRouter().back())
       Text(this.lang === 1 ? '心率监测' : 'Heart rate')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#B9C8BD')
-      Image(wearVisualResource(monitorVisualId(this.monitorState)))
-        .width(120)
-        .height(74)
-        .backgroundColor('#F3F5F0')
-        .borderRadius(16)
-        .objectFit(ImageFit.Contain)
+        .fontColor($r('app.color.text_secondary'))
+      WearCompanion({ visualId: monitorVisualId(this.monitorState), widthValue: 120, heightValue: 74,
+        reducedMotion: this.reducedMotion })
       Text(monitorStateLabel(this.monitorState, this.lang === 1))
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
         .fontColor(Color.White)
         .maxLines(2)
         .textAlign(TextAlign.Center)
+      Text('-- bpm')
+        .fontSize(12)
+        .fontColor($r('app.color.text_secondary'))
       Text(monitorSourceLabel(this.dataSource, this.lang === 1))
         .fontSize(8)
-        .fontColor('#B9C8BD')
+        .fontColor($r('app.color.text_secondary'))
         .width('68%')
         .maxLines(2)
         .textAlign(TextAlign.Center)
@@ -71,6 +72,6 @@ struct FocusPage {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .padding(20)
-    .backgroundColor('#202420')
+    .backgroundColor($r('app.color.page_background'))
   }
 }

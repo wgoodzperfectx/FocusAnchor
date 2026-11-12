@@ -6,7 +6,7 @@ import { WearFlashNote, WearFlashQueue, flashIdForSequence } from '../services/W
 import { WearCompanionState, WearFlashUiState, WearInteractionState, companionStateLabel, companionVisualId,
   flashTransportState, flashUiLabel, interactionVisualId, primaryStepEvent, selectCurrentAction } from
   '../services/WearUiState';
-import { wearVisualResource } from '../services/WearVisualService';
+import { WearCompanion } from '../components/WearCompanion';
 
 interface WearFocusStep {
   text: string;
@@ -72,6 +72,7 @@ struct Index {
   @State flashDraft: string = '';
   @State flashUiState: WearFlashUiState = 'IDLE';
   @State flashPendingCount: number = 0;
+  @State reducedMotion: boolean = false;
   private kvStore: distributedKVStore.SingleKVStore | undefined = undefined;
   private pref: preferences.Preferences | undefined = undefined;
   private localStamp: number = 0;
@@ -148,7 +149,7 @@ struct Index {
         return '编辑';
       }
       if (key === 'save') {
-        return '存';
+        return '保存';
       }
       if (key === 'cancel') {
         return '取消';
@@ -213,10 +214,10 @@ struct Index {
       return 'Edit';
     }
     if (key === 'save') {
-      return 'OK';
+      return 'Save';
     }
     if (key === 'cancel') {
-      return 'Back';
+      return 'Cancel';
     }
     if (key === 'done') {
       return 'Done';
@@ -274,6 +275,7 @@ struct Index {
     }
     const v = await this.pref.get('language', 0);
     this.lang = typeof v === 'number' ? (v === 1 ? 1 : 0) : 0;
+    this.reducedMotion = (await this.pref.get('reduce_motion', false)) === true;
   }
 
   private async loadLocalTasks(): Promise<void> {
@@ -678,12 +680,8 @@ struct Index {
   @Builder
   homePage() {
     Column({ space: 4 }) {
-      Image(wearVisualResource(this.homeVisualId()))
-        .width(88)
-        .height(68)
-        .objectFit(ImageFit.Contain)
-        .backgroundColor('#F3F5F0')
-        .borderRadius(18)
+      WearCompanion({ visualId: this.homeVisualId(), widthValue: 88, heightValue: 68,
+        reducedMotion: this.reducedMotion })
       if (this.currentStepTask()?.focusStep) {
         Text(this.currentStepTask()?.focusStep?.text ?? '')
           .fontSize(13)
@@ -699,7 +697,7 @@ struct Index {
             (this.lang === 1 ? '本地模拟步骤' : 'Local mock step') :
             (this.lang === 1 ? '规则生成步骤' : 'Rule step'))
             .fontSize(9)
-            .fontColor('#B9C8BD')
+            .fontColor($r('app.color.text_secondary'))
         }
         if (this.showStepFeedback) {
           Row({ space: 6 }) {
@@ -715,49 +713,49 @@ struct Index {
           .width('100%')
           Text(this.lang === 1 ? '返回主操作' : 'Back to main action')
             .fontSize(10)
-            .fontColor('#B9C8BD')
+            .fontColor($r('app.color.text_secondary'))
             .height(22)
             .onClick(() => { this.showStepFeedback = false; })
         } else {
-          Button(this.currentStepTask()?.focusStep?.status === 'in_progress' ?
-            (this.pausedActionId === this.currentStepTask()?.focusStep?.actionId ?
-              (this.lang === 1 ? '继续' : 'Resume') : (this.lang === 1 ? '暂停' : 'Pause')) :
-            (this.lang === 1 ? '开始' : 'Start'))
+          Button(this.primaryStepLabel())
             .width('100%')
             .height(40)
             .fontSize(14)
-            .backgroundColor('#4A7C59')
+            .fontColor($r('app.color.on_brand'))
+            .backgroundColor($r('app.color.brand_green'))
             .onClick(() => this.actOnCurrentStep())
           Text(this.lang === 1 ? '完成 / 换一步 ···' : 'Complete / Change ···')
             .fontSize(10)
-            .fontColor('#B9C8BD')
+            .fontColor($r('app.color.text_secondary'))
             .height(22)
             .onClick(() => { this.showStepFeedback = true; })
         }
       } else {
-        Text(this.lang === 1 ? '暂无当前一步' : 'No current step')
+        Text(this.lang === 1 ? '在手机选择第一步' : 'Choose a step on phone')
           .fontSize(14)
           .fontColor(Color.White)
           .textAlign(TextAlign.Center)
-        Text(this.companionState === 'UNKNOWN' ?
-          (this.lang === 1 ? '状态未知 · 手机选择第一步' : 'State unknown · choose a step on phone') :
-          companionStateLabel(this.companionState, this.lang === 1))
-          .fontSize(9)
-          .fontColor('#B9C8BD')
-          .maxLines(1)
-          .textAlign(TextAlign.Center)
+        if (this.companionState !== 'UNKNOWN') {
+          Text(companionStateLabel(this.companionState, this.lang === 1))
+            .fontSize(9)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textAlign(TextAlign.Center)
+        }
       }
       Text(this.statusText)
         .fontSize(9)
-        .fontColor('#B9C8BD')
+        .fontColor($r('app.color.text_secondary'))
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      Row({ space: 16 }) {
+      Row({ space: 8 }) {
         Text(this.lang === 1 ? '心率 ›' : 'Heart ›')
-          .fontSize(10).fontColor('#A6D895').height(24)
+          .fontSize(10).fontColor($r('app.color.brand_green'))
+          .width(64).height(36).textAlign(TextAlign.Center)
           .onClick(() => this.openFocus())
         Text(this.lang === 1 ? '设置' : 'Settings')
-          .fontSize(10).fontColor('#B9C8BD').height(24)
+          .fontSize(10).fontColor($r('app.color.text_secondary'))
+          .width(64).height(36).textAlign(TextAlign.Center)
           .onClick(() => this.openSettings())
       }
     }
@@ -769,6 +767,7 @@ struct Index {
   private homeVisualId(): string {
     const step = this.currentStepTask()?.focusStep;
     if (!step) return companionVisualId(this.companionState);
+    if (step.status === 'paused') return interactionVisualId('PAUSED');
     if (step.status === 'in_progress') {
       return interactionVisualId(this.pausedActionId === step.actionId ? 'PAUSED' : 'IN_PROGRESS');
     }
@@ -776,27 +775,30 @@ struct Index {
     return interactionVisualId('FIRST_STEP');
   }
 
+  private primaryStepLabel(): string {
+    const step = this.currentStepTask()?.focusStep;
+    const event = primaryStepEvent(step?.status ?? 'ready', this.pausedActionId === step?.actionId);
+    if (event === 'resume') return this.lang === 1 ? '继续' : 'Resume';
+    if (event === 'pause') return this.lang === 1 ? '暂停' : 'Pause';
+    return this.lang === 1 ? '开始' : 'Start';
+  }
+
 
   @Builder
   flashPage() {
     Column({ space: 4 }) {
-      if (!this.flashEditing && this.flashUiState === 'IDLE') {
-        Image($r('app.media.status_ready'))
-          .width(52)
-          .height(42)
-          .objectFit(ImageFit.Contain)
-          .backgroundColor('#E8EFE6')
-          .borderRadius(21)
+      if (!this.flashEditing) {
+        WearCompanion({ visualId: interactionVisualId('IDLE'), widthValue: 72, heightValue: 54,
+          reducedMotion: this.reducedMotion })
       }
       Text(this.tx('flash'))
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
       if (this.flashEditing) {
-        Image(wearVisualResource(interactionVisualId('LISTENING')))
-          .width(88)
-          .height(66)
-          .objectFit(ImageFit.Contain)
+        WearCompanion({ visualId: interactionVisualId(this.flashDraft.trim().length > 0 ?
+          'AWAITING_CONFIRMATION' : 'IDLE'), widthValue: 72, heightValue: 52,
+          reducedMotion: this.reducedMotion })
         TextInput({ text: this.flashDraft, placeholder: this.tx('flash_hint') })
           .id('flashDraftInput')
           .defaultFocus(true)
@@ -804,44 +806,38 @@ struct Index {
           .height(42)
           .fontSize(12)
           .fontColor(Color.White)
-          .backgroundColor('#36503D')
+          .backgroundColor($r('app.color.surface'))
           .borderRadius(20)
           .onChange((value: string) => { this.flashDraft = value; })
-        Text(this.lang === 1 ? '可用系统键盘的麦克风输入' : 'Use the system keyboard microphone')
-          .fontSize(9)
-          .fontColor('#B9C8BD')
-          .maxLines(2)
-          .textAlign(TextAlign.Center)
         Row({ space: 8 }) {
           Button(this.tx('save'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor('#4A7C59')
+            .enabled(this.flashDraft.trim().length > 0)
+            .fontColor($r('app.color.on_brand'))
+            .backgroundColor($r('app.color.brand_green'))
             .onClick(() => this.saveFlashDraft())
           Button(this.tx('cancel'))
             .layoutWeight(1)
             .height(40)
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.surface'))
             .onClick(() => { this.flashEditing = false; this.flashDraft = ''; })
         }
         .width('100%')
       } else {
-        Button(this.lang === 1 ? '语音记闪念' : 'Voice quick note')
+        Button(this.lang === 1 ? '说一句' : 'Speak a note')
           .width('100%')
           .height(46)
           .fontSize(14)
-          .backgroundColor('#4A7C59')
+          .fontColor($r('app.color.on_brand'))
+          .backgroundColor($r('app.color.brand_green'))
           .onClick(() => this.openFlashInput())
-        if (this.flashUiState === 'IDLE') {
-          Text(this.lang === 1 ? '使用系统输入法，也可打字' : 'System keyboard · typing available')
-            .fontSize(9)
-            .fontColor('#B9C8BD')
-            .textAlign(TextAlign.Center)
-        }
       }
       Text(flashUiLabel(this.flashUiState, this.lang === 1))
         .fontSize(10)
         .fontColor(this.flashUiState === 'SAVE_FAILED' || this.flashUiState === 'SYNC_FAILED' ?
-          '#F0B184' : '#A6D895')
+          $r('app.color.warning') : $r('app.color.brand_green'))
         .maxLines(2)
         .textAlign(TextAlign.Center)
       if (this.flashUiState === 'SYNC_FAILED') {
@@ -864,7 +860,8 @@ struct Index {
     .width('100%')
     .height(40)
     .fontSize(12)
-    .backgroundColor(this.currentIndex === 0 ? '#4A7C59' : '#36503D')
+    .fontColor(this.currentIndex === 0 ? $r('app.color.on_brand') : $r('app.color.text_primary'))
+    .backgroundColor(this.currentIndex === 0 ? $r('app.color.brand_green') : $r('app.color.surface'))
     .onClick(() => {
       this.currentIndex = this.currentIndex === 0 ? 1 : 0;
       this.swiperController.changeIndex(this.currentIndex, true);
@@ -900,7 +897,9 @@ struct Index {
         this.reloadFromRemote();
       })
 
-      this.pageDots()
+      if (!this.flashEditing) {
+        this.pageDots()
+      }
     }
     .width('100%')
     .height('100%')
@@ -910,7 +909,7 @@ struct Index {
       top: Math.max(10, SAFE_V_TOP - 8),
       bottom: SAFE_V_BOT
     })
-    .backgroundColor('#202420')
+    .backgroundColor($r('app.color.page_background'))
     .onAreaChange((_o: Area, area: Area) => {
       const w = Number(area.width);
       const h = Number(area.height);

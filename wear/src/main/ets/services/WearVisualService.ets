@@ -9,15 +9,15 @@ export function wearVisualResource(id: string): Resource {
     case 'status_in_progress': return $r('app.media.status_in_progress');
     case 'status_paused': return $r('app.media.status_paused');
     case 'status_step_complete': return $r('app.media.status_step_complete');
-    case 'fa_monitor_connecting': return $r('app.media.fa_monitor_connecting');
-    case 'fa_monitor_reading': return $r('app.media.fa_monitor_reading');
-    case 'fa_monitor_monitoring': return $r('app.media.fa_monitor_monitoring');
-    case 'fa_monitor_signal_unstable': return $r('app.media.fa_monitor_signal_unstable');
-    case 'fa_monitor_reconnecting': return $r('app.media.fa_monitor_reconnecting');
-    case 'fa_monitor_stopped': return $r('app.media.fa_monitor_stopped');
-    case 'fa_companion_stable': return $r('app.media.fa_companion_stable');
-    case 'fa_companion_fluctuating': return $r('app.media.fa_companion_fluctuating');
-    case 'fa_companion_support_requested': return $r('app.media.fa_companion_support_requested');
+    case 'fa_monitor_connecting': return $r('app.media.fa_monitor_connecting_transparent');
+    case 'fa_monitor_reading': return $r('app.media.fa_monitor_reading_transparent');
+    case 'fa_monitor_monitoring': return $r('app.media.fa_monitor_monitoring_transparent');
+    case 'fa_monitor_signal_unstable': return $r('app.media.fa_monitor_signal_unstable_transparent');
+    case 'fa_monitor_reconnecting': return $r('app.media.fa_monitor_reconnecting_transparent');
+    case 'fa_monitor_stopped': return $r('app.media.fa_monitor_stopped_transparent');
+    case 'fa_companion_stable': return $r('app.media.fa_companion_stable_transparent');
+    case 'fa_companion_fluctuating': return $r('app.media.fa_companion_fluctuating_transparent');
+    case 'fa_companion_support_requested': return $r('app.media.fa_companion_support_requested_transparent');
     default: return $r('app.media.status_ready');
   }
 }
