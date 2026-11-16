@@ -10,3 +10,15 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+
+# Local credentials and generated release artifacts
+.env
+.env.*
+*.p12
+*.p7b
+*.jks
+*.keystore
+*.hap
+*.hsp
+*.app
+*.log
