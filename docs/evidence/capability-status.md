@@ -14,4 +14,5 @@ IMPLEMENTED 指本分支代码和本地验证；MOCK / REPLAY 指合成输入；
 | M1/M2 | EXPERIMENTAL | Modeling 独立工作树；WESAD→NURSE 泛化 FAIL，不能生产触达 |
 | 手机 UI V3.1 | BLOCKED | 独立脏工作树；负责人审阅前不合并；全量测试 57/59 |
 | Watch V3.4 人机交互 | EXPERIMENTAL | 未完成实验；不替代 V3.3 |
-| 构建/模拟器/真机 | NOT_RUN | 本集成分支无本轮结果 |
+| `entry` / `wear` SDK 构建 | IMPLEMENTED | 本轮 DevEco 26 Hvigor `assembleHap` 均成功；未签名，部分 ArkTS 兼容性警告 |
+| 模拟器/真机 | NOT_RUN | 本集成分支未运行 |

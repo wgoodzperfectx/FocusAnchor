@@ -22,3 +22,5 @@
 *.hsp
 *.app
 *.log
+__pycache__/
+*.pyc

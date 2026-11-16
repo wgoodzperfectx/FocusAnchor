@@ -34,7 +34,7 @@ python tests/test_wear_v33_assets.py
 
 ## 测试与限制
 
-本分支最近一次 Node 测试 19/19，通过 9 个透明手表素材检查。手机原树全量 Node 测试 57/59，两项 Workflow 测试因缺少 `WorkflowV21Mocks.ts` 无法加载。HarmonyOS 构建、模拟器、真机、AgentArts、卡片回写和双端 ACK 均无本分支本轮验收结果。参见[能力矩阵](docs/evidence/capability-status.md)与[路线图](docs/roadmap.md)。
+本分支最近一次 Node 测试 19/19，通过 9 个透明手表素材检查；`entry` 和 `wear` 的 DevEco 26 SDK 构建均成功，产物未签名。手机原树全量 Node 测试 57/59，两项 Workflow 测试因缺少 `WorkflowV21Mocks.ts` 无法加载。模拟器、真机、AgentArts、卡片回写和双端 ACK 均无本分支本轮验收结果。参见[能力矩阵](docs/evidence/capability-status.md)与[路线图](docs/roadmap.md)。
 
 ## License 与 Credits
 
