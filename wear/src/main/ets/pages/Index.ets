@@ -1,6 +1,30 @@
 import { common } from '@kit.AbilityKit';
 import { distributedKVStore } from '@kit.ArkData';
 import { preferences } from '@kit.ArkData';
+import { WearActionEvent, WearSyncQueue, shouldAdoptPhoneProjection } from '../services/WearSyncQueue';
+import { WearFlashNote, WearFlashQueue, flashIdForSequence } from '../services/WearFlashNoteService';
+import { WearCompanionState, WearFlashUiState, WearInteractionState, companionStateLabel, companionVisualId,
+  flashTransportState, flashUiLabel, interactionVisualId, primaryStepEvent, selectCompletedAction,
+  selectCurrentAction } from
+  '../services/WearUiState';
+import { WearCompanion } from '../components/WearCompanion';
+
+interface WearFocusStep {
+  text: string;
+  status: string;
+  updatedAt: number;
+  actionId?: string;
+  revision?: number;
+  taskId?: string;
+  order?: number;
+  generationSource?: string;
+}
+
+interface WearActionAck {
+  eventId: string;
+  status: string;
+  currentRevision?: number;
+}
 
 interface WearTask {
   id: string;
@@ -14,11 +38,16 @@ interface WearTask {
   createdAt: number;
   dueAt?: number;
   insight?: string;
+  focusStep?: WearFocusStep;
 }
 
 interface TaskSyncBundle {
   updatedAt: number;
   tasks: WearTask[];
+  source?: string;
+  currentActionId?: string;
+  /** Optional phone-owned user state; consumed when present, not inferred on the watch. */
+  companionState?: WearCompanionState;
 }
 
 /** Round-watch safe insets (avoid clipping at bezel). */
@@ -34,45 +63,38 @@ struct Index {
   @State statusText: string = '';
   @State currentIndex: number = 0;
   @State lang: number = 0;
-  @State clockText: string = '00:00';
-  @State bpm: number = 78;
-  @State editing: boolean = false;
-  @State editId: string = '';
-  @State editTitle: string = '';
-  @State editPriority: number = 2;
-  @State editDueOffsetDays: number = 1;
-  @State isNew: boolean = false;
+  @State currentActionId: string = '';
+  @State companionState: WearCompanionState = 'UNKNOWN';
+  @State showStepFeedback: boolean = false;
   @State pageSize: number = 200;
+  @State pausedActionId: string = '';
+  @State syncUnavailable: boolean = false;
+  @State flashEditing: boolean = false;
+  @State flashDraft: string = '';
+  @State flashUiState: WearFlashUiState = 'IDLE';
+  @State flashPendingCount: number = 0;
+  @State reducedMotion: boolean = false;
   private kvStore: distributedKVStore.SingleKVStore | undefined = undefined;
-  private clockId: number = -1;
   private pref: preferences.Preferences | undefined = undefined;
   private localStamp: number = 0;
   private writing: boolean = false;
+  private actionQueue: WearSyncQueue = new WearSyncQueue();
+  private actionSequence: number = 1;
+  private actionMutation: Promise<void> = Promise.resolve();
+  private flashQueue: WearFlashQueue = new WearFlashQueue();
+  private flashDeviceId: string = '';
+  private flashSequence: number = 1;
+  private flashMutation: Promise<void> = Promise.resolve();
   private swiperController: SwiperController = new SwiperController();
 
   aboutToAppear(): void {
-    this.initLocal();
-    this.initSync();
-    this.tickClock();
-    this.clockId = setInterval(() => this.tickClock(), 1000);
-  }
-
-  aboutToDisappear(): void {
-    if (this.clockId !== -1) {
-      clearInterval(this.clockId);
-      this.clockId = -1;
-    }
+    this.initLocal().then(() => this.initSync());
   }
 
   onPageShow(): void {
     this.loadLang();
-  }
-
-  private tickClock(): void {
-    const now = new Date();
-    const hh = now.getHours().toString().padStart(2, '0');
-    const mm = now.getMinutes().toString().padStart(2, '0');
-    this.clockText = `${hh}:${mm}`;
+    this.flushActionQueue();
+    this.flushFlashQueue();
   }
 
   /** Content width inside circular safe zone (~70% of diameter). */
@@ -100,6 +122,24 @@ struct Index {
       if (key === 'sync_fail') {
         return '同步不可用';
       }
+      if (key === 'sync_pending') {
+        return '已保存，待同步';
+      }
+      if (key === 'sync_conflict') {
+        return '步骤已变化，请刷新';
+      }
+      if (key === 'edit_phone') {
+        return '请在手机编辑任务';
+      }
+      if (key === 'needs_step') {
+        return '请在手机拆分下一步';
+      }
+      if (key === 'flash') {
+        return '闪念';
+      }
+      if (key === 'flash_hint') {
+        return '先记下来，稍后再看';
+      }
       if (key === 'title') {
         return '焦点锚';
       }
@@ -110,7 +150,7 @@ struct Index {
         return '编辑';
       }
       if (key === 'save') {
-        return '存';
+        return '保存';
       }
       if (key === 'cancel') {
         return '取消';
@@ -147,6 +187,24 @@ struct Index {
     if (key === 'sync_fail') {
       return 'Offline';
     }
+    if (key === 'sync_pending') {
+      return 'Saved · pending';
+    }
+    if (key === 'sync_conflict') {
+      return 'Step changed';
+    }
+    if (key === 'edit_phone') {
+      return 'Edit on phone';
+    }
+    if (key === 'needs_step') {
+      return 'Choose next step on phone';
+    }
+    if (key === 'flash') {
+      return 'Quick note';
+    }
+    if (key === 'flash_hint') {
+      return 'Save it for later';
+    }
     if (key === 'title') {
       return 'Focus';
     }
@@ -157,10 +215,10 @@ struct Index {
       return 'Edit';
     }
     if (key === 'save') {
-      return 'OK';
+      return 'Save';
     }
     if (key === 'cancel') {
-      return 'Back';
+      return 'Cancel';
     }
     if (key === 'done') {
       return 'Done';
@@ -183,6 +241,30 @@ struct Index {
       this.pref = await preferences.getPreferences(context, 'wear_focux');
       await this.loadLang();
       await this.loadLocalTasks();
+      const rawEvents = await this.pref.get('pending_action_events', '[]');
+      const parsed = JSON.parse(`${rawEvents}`) as WearActionEvent[];
+      this.actionQueue = new WearSyncQueue(Array.isArray(parsed) ? parsed : []);
+      const sequence = await this.pref.get('action_event_sequence', 1);
+      this.actionSequence = typeof sequence === 'number' && sequence > 0 ? sequence : 1;
+      const paused = await this.pref.get('paused_action_id', '');
+      this.pausedActionId = typeof paused === 'string' ? paused : '';
+      const flashRaw = await this.pref.get('pending_flash_notes', '[]');
+      const flashParsed = JSON.parse(`${flashRaw}`) as WearFlashNote[];
+      this.flashQueue = new WearFlashQueue(Array.isArray(flashParsed) ? flashParsed : []);
+      this.flashPendingCount = this.flashQueue.pending().length;
+      const flashSequence = await this.pref.get('flash_sequence', 1);
+      this.flashSequence = typeof flashSequence === 'number' && flashSequence > 0 ? flashSequence : 1;
+      const deviceId = await this.pref.get('flash_device_id', '');
+      this.flashDeviceId = typeof deviceId === 'string' && deviceId ? deviceId :
+        `wear_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+      if (!deviceId) {
+        await this.pref.put('flash_device_id', this.flashDeviceId);
+        await this.pref.flush();
+      }
+      if (this.flashPendingCount > 0) this.flashUiState = 'PENDING';
+      if (this.actionQueue.pending().length > 0) {
+        this.statusText = this.tx('sync_pending');
+      }
     } catch (_e) {
       this.lang = 0;
     }
@@ -194,6 +276,7 @@ struct Index {
     }
     const v = await this.pref.get('language', 0);
     this.lang = typeof v === 'number' ? (v === 1 ? 1 : 0) : 0;
+    this.reducedMotion = (await this.pref.get('reduce_motion', false)) === true;
   }
 
   private async loadLocalTasks(): Promise<void> {
@@ -236,14 +319,19 @@ struct Index {
         securityLevel: distributedKVStore.SecurityLevel.S1
       };
       this.kvStore = await kvManager.getKVStore<distributedKVStore.SingleKVStore>('focux_watch_sync', config);
+      this.syncUnavailable = false;
       this.kvStore.on('dataChange', distributedKVStore.SubscribeType.SUBSCRIBE_TYPE_ALL, () => {
         if (!this.writing) {
           this.reloadFromRemote();
         }
       });
       await this.reloadFromRemote();
+      await this.flushActionQueue();
+      await this.flushFlashQueue();
     } catch (error) {
+      this.syncUnavailable = true;
       this.statusText = this.tx('sync_fail');
+      if (this.flashQueue.pending().length > 0) this.flashUiState = 'SYNC_FAILED';
     }
   }
 
@@ -255,7 +343,11 @@ struct Index {
     const obj = parsed as TaskSyncBundle;
     const tasks = Array.isArray(obj.tasks) ? this.normalizeList(obj.tasks) : [];
     const updatedAt = typeof obj.updatedAt === 'number' ? obj.updatedAt : 0;
-    return { updatedAt, tasks };
+    const companionState = ['STABLE', 'FLUCTUATING', 'SUPPORT_REQUESTED'].includes(obj.companionState ?? '') ?
+      obj.companionState : 'UNKNOWN';
+    return { updatedAt, tasks, source: obj.source,
+      currentActionId: typeof obj.currentActionId === 'string' ? obj.currentActionId : undefined,
+      companionState: companionState };
   }
 
   private normalizeList(list: WearTask[]): WearTask[] {
@@ -275,7 +367,8 @@ struct Index {
       completed: !!t.completed,
       createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now(),
       dueAt: t.dueAt,
-      insight: t.insight ?? ''
+      insight: t.insight ?? '',
+      focusStep: t.focusStep
     };
   }
 
@@ -284,21 +377,30 @@ struct Index {
       return;
     }
     try {
+      const ackStatus = await this.consumeActionAcks();
+      await this.consumeFlashAcks();
       const value = await this.kvStore.get('tasks_sync');
       let text = '';
       if (typeof value === 'string') {
         text = value;
       }
       if (text.length === 0) {
-        this.statusText = this.tasks.length > 0 ? this.tx('sync_ok') : this.tx('sync_empty');
+        this.statusText = ackStatus ?? (this.actionQueue.pending().length > 0 ? this.tx('sync_pending') :
+          (this.tasks.length > 0 ? this.tx('sync_ok') : this.tx('sync_empty')));
         return;
       }
       const bundle = this.parseBundle(text);
-      if (bundle.updatedAt >= this.localStamp) {
+      if (shouldAdoptPhoneProjection(bundle, this.localStamp)) {
         this.applyTaskList(bundle.tasks);
+        this.currentActionId = bundle.currentActionId ?? '';
+        this.companionState = bundle.companionState ?? 'UNKNOWN';
+        if (this.pausedActionId && this.currentStepTask()?.focusStep?.actionId !== this.pausedActionId) {
+          this.pausedActionId = '';
+        }
         this.localStamp = bundle.updatedAt;
         await this.persistLocal(bundle.tasks, bundle.updatedAt);
-        this.statusText = this.tasks.length > 0 ? this.tx('sync_ok') : this.tx('sync_empty');
+        this.statusText = ackStatus ?? (this.actionQueue.pending().length > 0 ? this.tx('sync_pending') :
+          (this.tasks.length > 0 ? this.tx('sync_ok') : this.tx('sync_empty')));
       }
       try {
         const langVal = await this.kvStore.get('language_sync');
@@ -313,8 +415,194 @@ struct Index {
         // optional
       }
     } catch (error) {
-      this.statusText = this.tx('sync_empty');
+      this.syncUnavailable = true;
+      this.statusText = this.tx('sync_fail');
     }
+  }
+
+  private async saveActionQueue(): Promise<void> {
+    if (!this.pref) {
+      throw new Error('Watch local queue unavailable');
+    }
+    await this.pref.put('pending_action_events', JSON.stringify(this.actionQueue.pending()));
+    await this.pref.put('action_event_sequence', this.actionSequence);
+    await this.pref.flush();
+  }
+
+  private async flushActionQueue(): Promise<void> {
+    await this.serializeActionMutation(async () => this.flushActionQueueNow());
+  }
+
+  private async flushActionQueueNow(): Promise<void> {
+    if (!this.kvStore || this.actionQueue.pending().length === 0) {
+      return;
+    }
+    try {
+      await this.kvStore.put('action_events_sync', JSON.stringify(this.actionQueue.pending()));
+      this.syncUnavailable = false;
+    } catch (_e) {
+      this.syncUnavailable = true;
+      this.statusText = this.tx('sync_pending');
+    }
+  }
+
+  private async consumeActionAcks(): Promise<string | undefined> {
+    let status: string | undefined = undefined;
+    await this.serializeActionMutation(async () => {
+      status = await this.consumeActionAcksNow();
+    });
+    return status;
+  }
+
+  private async consumeActionAcksNow(): Promise<string | undefined> {
+    if (!this.kvStore || this.actionQueue.pending().length === 0) {
+      return undefined;
+    }
+    try {
+      const raw = await this.kvStore.get('action_acks_sync');
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) as WearActionAck[] : [];
+      if (!Array.isArray(parsed)) {
+        return undefined;
+      }
+      let rejected = false;
+      let needsStep = false;
+      let consumed = false;
+      for (const ack of parsed) {
+        const pending = this.actionQueue.pending().find((event: WearActionEvent) => event.eventId === ack.eventId);
+        if (pending) {
+          consumed = true;
+          rejected = rejected || (ack.status !== 'applied' && ack.status !== 'duplicate' &&
+            ack.status !== 'session_only');
+          needsStep = needsStep || ack.status === 'needs_step';
+          if (ack.status === 'session_only') {
+            if (pending.type === 'pause') {
+              this.pausedActionId = pending.actionId;
+            } else if (pending.type === 'resume') {
+              this.pausedActionId = '';
+            }
+          }
+          this.actionQueue.ack(ack.eventId);
+        }
+      }
+      if (!consumed) {
+        return undefined;
+      }
+      await this.saveActionQueue();
+      if (this.pref) {
+        await this.pref.put('paused_action_id', this.pausedActionId);
+        await this.pref.flush();
+      }
+      this.statusText = needsStep ? this.tx('needs_step') : rejected ? this.tx('sync_conflict') :
+        (this.actionQueue.pending().length > 0 ? this.tx('sync_pending') : this.tx('sync_ok'));
+      return this.statusText;
+    } catch (_e) {
+      // Missing ack or offline: pending events remain durable.
+      return undefined;
+    }
+  }
+
+  private async serializeActionMutation(operation: () => Promise<void>): Promise<void> {
+    const run = this.actionMutation.then(operation, operation);
+    this.actionMutation = run.catch(() => {});
+    await run;
+  }
+
+  private async saveFlashQueue(): Promise<void> {
+    if (!this.pref) {
+      throw new Error('Watch flash local storage unavailable');
+    }
+    await this.pref.put('pending_flash_notes', JSON.stringify(this.flashQueue.pending()));
+    await this.pref.put('flash_sequence', this.flashSequence);
+    await this.pref.put('flash_device_id', this.flashDeviceId);
+    await this.pref.flush();
+    this.flashPendingCount = this.flashQueue.pending().length;
+  }
+
+  private async serializeFlashMutation(operation: () => Promise<void>): Promise<void> {
+    const run = this.flashMutation.then(operation, operation);
+    this.flashMutation = run.catch(() => {});
+    await run;
+  }
+
+  private async flushFlashQueue(): Promise<void> {
+    await this.serializeFlashMutation(async () => this.flushFlashQueueNow());
+  }
+
+  private async retryFlashSync(): Promise<void> {
+    if (this.kvStore) {
+      await this.flushFlashQueue();
+    } else {
+      await this.initSync();
+    }
+  }
+
+  private async flushFlashQueueNow(): Promise<void> {
+    if (!this.kvStore || this.flashQueue.pending().length === 0) {
+      return;
+    }
+    try {
+      await this.kvStore.put('flash_notes_sync', JSON.stringify(this.flashQueue.pending()));
+      this.flashUiState = flashTransportState(true);
+    } catch (_e) {
+      this.flashUiState = flashTransportState(false);
+    }
+  }
+
+  private async consumeFlashAcks(): Promise<void> {
+    await this.serializeFlashMutation(async () => {
+      if (!this.kvStore || this.flashQueue.pending().length === 0) {
+        return;
+      }
+      try {
+        const raw = await this.kvStore.get('flash_acks_sync');
+        const ids = typeof raw === 'string' ? JSON.parse(raw) as string[] : [];
+        if (!Array.isArray(ids)) {
+          return;
+        }
+        let changed = false;
+        for (const id of ids) {
+          if (this.flashQueue.pending().some((note: WearFlashNote) => note.flashId === id)) {
+            this.flashQueue.ack(id);
+            changed = true;
+          }
+        }
+        if (changed) {
+          await this.saveFlashQueue();
+          this.flashUiState = this.flashQueue.pending().length > 0 ? 'PENDING' : 'SYNCED';
+        }
+      } catch (_e) {
+        // The durable queue remains pending until a phone acknowledgement arrives.
+      }
+    });
+  }
+
+  private async saveFlashDraft(): Promise<void> {
+    await this.serializeFlashMutation(async () => {
+      const content = this.flashDraft.trim();
+      if (!content || !this.pref || !this.flashDeviceId) {
+        this.flashUiState = 'SAVE_FAILED';
+        return;
+      }
+      const note: WearFlashNote = {
+        flashId: flashIdForSequence(this.flashDeviceId, this.flashSequence),
+        content: content,
+        sourceDevice: 'watch',
+        createdAt: Date.now(),
+        syncStatus: 'pending'
+      };
+      this.flashQueue.enqueue(note);
+      this.flashSequence += 1;
+      try {
+        await this.saveFlashQueue();
+        this.flashDraft = '';
+        this.flashEditing = false;
+        this.flashUiState = 'LOCAL';
+        await this.flushFlashQueueNow();
+        if (this.flashUiState === 'LOCAL') this.flashUiState = 'PENDING';
+      } catch (_e) {
+        this.flashUiState = 'SAVE_FAILED';
+      }
+    });
   }
 
   private async persistLocal(list: WearTask[], stamp: number): Promise<void> {
@@ -330,27 +618,46 @@ struct Index {
     }
   }
 
-  private async pushTasks(list: WearTask[]): Promise<void> {
-    const stamp = Date.now();
-    this.applyTaskList(list);
-    this.localStamp = stamp;
-    await this.persistLocal(list, stamp);
-    if (!this.kvStore) {
-      this.statusText = this.tx('saved');
+  private currentStepTask(): WearTask | undefined {
+    return selectCurrentAction(this.tasks, this.currentActionId || undefined);
+  }
+
+  private confirmedDoneTask(): WearTask | undefined {
+    return selectCompletedAction(this.allTasks, this.currentActionId || undefined);
+  }
+
+  private async actOnCurrentStep(): Promise<void> {
+    const current = this.currentStepTask();
+    if (!current?.focusStep || current.focusStep.status === 'completed') {
       return;
     }
-    this.writing = true;
-    try {
-      const bundle: TaskSyncBundle = { updatedAt: stamp, tasks: list };
-      await this.kvStore.put('tasks_sync', JSON.stringify(bundle));
-      this.statusText = this.tx('saved');
-    } catch (_e) {
-      this.statusText = this.tx('sync_fail');
-    } finally {
-      setTimeout(() => {
-        this.writing = false;
-      }, 400);
-    }
+    const step = current.focusStep;
+    const type = primaryStepEvent(step.status, this.pausedActionId === step.actionId);
+    await this.sendStepEvent(type);
+  }
+
+  private async sendStepEvent(type: 'start' | 'resume' | 'pause' | 'complete' | 'change'): Promise<void> {
+    await this.serializeActionMutation(async () => {
+      const current = this.currentStepTask();
+      if (!current?.focusStep) {
+        return;
+      }
+      const step = current.focusStep;
+      if (!step.actionId || !step.revision || !this.pref) {
+        this.statusText = this.tx('sync_conflict');
+        return;
+      }
+      const queued = this.actionQueue.enqueueOperation(current.id, step.actionId,
+        step.revision, type, this.actionSequence, Date.now());
+      this.actionSequence = queued.nextSequence;
+      try {
+        await this.saveActionQueue();
+        this.statusText = this.tx('sync_pending');
+        await this.flushActionQueueNow();
+      } catch (_e) {
+        this.statusText = this.tx('sync_fail');
+      }
+    });
   }
 
   private openFocus(): void {
@@ -363,387 +670,220 @@ struct Index {
     });
   }
 
-  private startCreate(): void {
-    this.isNew = true;
-    this.editId = `wear_${Date.now()}`;
-    this.editTitle = '';
-    this.editPriority = 2;
-    this.editDueOffsetDays = 1;
-    this.editing = true;
-  }
-
-  private startEdit(task: WearTask): void {
-    this.isNew = false;
-    this.editId = task.id;
-    this.editTitle = task.title;
-    this.editPriority = task.priority === 1 || task.priority === 3 ? task.priority : 2;
-    if (task.dueAt !== undefined) {
-      const days = Math.max(0, Math.round((task.dueAt - Date.now()) / (24 * 60 * 60 * 1000)));
-      this.editDueOffsetDays = days <= 1 ? 1 : (days <= 3 ? 3 : 7);
-    } else {
-      this.editDueOffsetDays = 1;
-    }
-    this.editing = true;
-  }
-
-  private cyclePriority(): void {
-    if (this.editPriority === 1) {
-      this.editPriority = 2;
-    } else if (this.editPriority === 2) {
-      this.editPriority = 3;
-    } else {
-      this.editPriority = 1;
-    }
-  }
-
-  private cycleDue(): void {
-    if (this.editDueOffsetDays === 1) {
-      this.editDueOffsetDays = 3;
-    } else if (this.editDueOffsetDays === 3) {
-      this.editDueOffsetDays = 7;
-    } else {
-      this.editDueOffsetDays = 1;
-    }
-  }
-
-  private async saveEdit(): Promise<void> {
-    const title = this.editTitle.trim().length > 0 ? this.editTitle.trim() : (this.lang === 1 ? '未命名' : 'Untitled');
-    const dueAt = Date.now() + this.editDueOffsetDays * 24 * 60 * 60 * 1000;
-    let next: WearTask[] = [...this.allTasks];
-    if (this.isNew) {
-      const created: WearTask = {
-        id: this.editId,
-        title: title,
-        content: '',
-        studyMinutes: 25,
-        studyMethod: 'reading',
-        priority: this.editPriority,
-        basePriority: this.editPriority,
-        completed: false,
-        createdAt: Date.now(),
-        dueAt: dueAt,
-        insight: ''
-      };
-      next = [created, ...next];
-    } else {
-      next = next.map((t: WearTask) => {
-        if (t.id !== this.editId) {
-          return t;
-        }
-        return {
-          id: t.id,
-          title: title,
-          content: t.content ?? '',
-          studyMinutes: t.studyMinutes ?? 25,
-          studyMethod: t.studyMethod ?? 'reading',
-          priority: this.editPriority,
-          basePriority: this.editPriority,
-          completed: t.completed,
-          createdAt: t.createdAt,
-          dueAt: dueAt,
-          insight: t.insight ?? ''
-        };
-      });
-    }
-    this.editing = false;
-    await this.pushTasks(next);
-  }
-
-  private async markDone(): Promise<void> {
-    if (this.isNew) {
-      this.editing = false;
-      return;
-    }
-    const next = this.allTasks.map((t: WearTask) => {
-      if (t.id !== this.editId) {
-        return t;
+  private openFlashInput(): void {
+    this.flashEditing = true;
+    // Focus the existing system input immediately after the conditional field enters the tree.
+    setTimeout(() => {
+      try {
+        this.getUIContext().getFocusController().requestFocus('flashDraftInput');
+      } catch (_e) {
+        // The field remains available for a direct tap on devices without this focus path.
       }
-      return {
-        id: t.id,
-        title: t.title,
-        content: t.content ?? '',
-        studyMinutes: t.studyMinutes ?? 25,
-        studyMethod: t.studyMethod ?? 'reading',
-        priority: t.priority,
-        basePriority: t.basePriority ?? t.priority,
-        completed: true,
-        createdAt: t.createdAt,
-        dueAt: t.dueAt,
-        insight: t.insight ?? ''
-      };
-    });
-    this.editing = false;
-    await this.pushTasks(next);
-  }
-
-  private async deleteEdit(): Promise<void> {
-    if (this.isNew) {
-      this.editing = false;
-      return;
-    }
-    const next = this.allTasks.filter((t: WearTask) => t.id !== this.editId);
-    this.editing = false;
-    await this.pushTasks(next);
+    }, 80);
   }
 
   @Builder
   homePage() {
-    Column({ space: 6 }) {
-      Text(this.tx('title'))
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#C8C8C8')
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
-      Text(this.clockText)
-        .fontSize(34)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
-      Text(`${this.bpm} bpm`)
-        .fontSize(11)
-        .fontColor('#A8A8A8')
-        .textAlign(TextAlign.Center)
-        .width('100%')
-
-      Button(this.tx('focus'))
-        .width(88)
-        .height(88)
-        .borderRadius(44)
-        .fontSize(13)
-        .fontColor(Color.White)
-        .backgroundColor('#4A4A4A')
-        .border({ width: 1.5, color: '#E8E8E8' })
-        .margin({ top: 4 })
-        .onClick(() => this.openFocus())
-
+    Column({ space: 4 }) {
+      WearCompanion({ visualId: this.homeVisualId(), widthValue: 88, heightValue: 68,
+        reducedMotion: this.reducedMotion })
+      if (this.currentStepTask()?.focusStep) {
+        Text(this.currentStepTask()?.focusStep?.text ?? '')
+          .fontSize(13)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Medium)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .textAlign(TextAlign.Center)
+          .width('100%')
+        if (this.currentStepTask()?.focusStep?.generationSource === 'MOCK' ||
+          this.currentStepTask()?.focusStep?.generationSource === 'RULE') {
+          Text(this.currentStepTask()?.focusStep?.generationSource === 'MOCK' ?
+            (this.lang === 1 ? '本地模拟步骤' : 'Local mock step') :
+            (this.lang === 1 ? '规则生成步骤' : 'Rule step'))
+            .fontSize(9)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        if (this.showStepFeedback) {
+          Row({ space: 6 }) {
+            Button(this.lang === 1 ? '完成' : 'Done')
+              .height(38)
+              .layoutWeight(1)
+              .onClick(() => { this.sendStepEvent('complete'); this.showStepFeedback = false; })
+            Button(this.lang === 1 ? '换一步' : 'Change')
+              .height(38)
+              .layoutWeight(1)
+              .onClick(() => { this.sendStepEvent('change'); this.showStepFeedback = false; })
+          }
+          .width('100%')
+          Text(this.lang === 1 ? '返回主操作' : 'Back to main action')
+            .fontSize(10)
+            .fontColor($r('app.color.text_secondary'))
+            .height(22)
+            .onClick(() => { this.showStepFeedback = false; })
+        } else {
+          Button(this.primaryStepLabel())
+            .width('100%')
+            .height(40)
+            .fontSize(14)
+            .fontColor($r('app.color.on_brand'))
+            .backgroundColor($r('app.color.brand_green'))
+            .onClick(() => this.actOnCurrentStep())
+          Text(this.lang === 1 ? '完成 / 换一步 ···' : 'Complete / Change ···')
+            .fontSize(10)
+            .fontColor($r('app.color.text_secondary'))
+            .height(22)
+            .onClick(() => { this.showStepFeedback = true; })
+        }
+      } else if (this.confirmedDoneTask()) {
+        Text(this.lang === 1 ? '这一步完成' : 'Step complete')
+          .fontSize(14)
+          .fontColor($r('app.color.text_primary'))
+          .textAlign(TextAlign.Center)
+        Text(this.lang === 1 ? '下一步在手机确认' : 'Choose next on phone')
+          .fontSize(9)
+          .fontColor($r('app.color.text_secondary'))
+          .textAlign(TextAlign.Center)
+      } else {
+        Text(this.lang === 1 ? '在手机选择第一步' : 'Choose a step on phone')
+          .fontSize(14)
+          .fontColor(Color.White)
+          .textAlign(TextAlign.Center)
+        if (this.companionState !== 'UNKNOWN') {
+          Text(companionStateLabel(this.companionState, this.lang === 1))
+            .fontSize(9)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textAlign(TextAlign.Center)
+        }
+      }
       Text(this.statusText)
         .fontSize(9)
-        .fontColor('#888888')
+        .fontColor($r('app.color.text_secondary'))
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .textAlign(TextAlign.Center)
-        .width('100%')
-        .margin({ top: 2 })
+      Row({ space: 8 }) {
+        Text(this.lang === 1 ? '心率 ›' : 'Heart ›')
+          .fontSize(10).fontColor($r('app.color.brand_green'))
+          .width(64).height(36).textAlign(TextAlign.Center)
+          .onClick(() => this.openFocus())
+        Text(this.lang === 1 ? '设置' : 'Settings')
+          .fontSize(10).fontColor($r('app.color.text_secondary'))
+          .width(64).height(36).textAlign(TextAlign.Center)
+          .onClick(() => this.openSettings())
+      }
     }
     .width(this.contentW())
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
 
-  @Builder
-  tasksPage() {
-    Column({ space: 4 }) {
-      if (this.editing) {
-        this.editorPanel()
-      } else {
-        Row() {
-          Text(`${this.tx('tasks')} ${this.tasks.length}`)
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-          Text('+')
-            .width(28)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-            .textAlign(TextAlign.Center)
-            .backgroundColor('#555555')
-            .onClick(() => this.startCreate())
-        }
-        .width(this.contentW())
-
-        List({ space: 4 }) {
-          ForEach(this.tasks, (task: WearTask) => {
-            ListItem() {
-              Row({ space: 6 }) {
-                Text(task.title)
-                  .fontSize(11)
-                  .fontColor(Color.White)
-                  .layoutWeight(1)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(`P${task.priority}`)
-                  .fontSize(9)
-                  .fontColor('#CFCFCF')
-              }
-              .width('100%')
-              .height(32)
-              .padding({ left: 10, right: 10 })
-              .backgroundColor('#3A3A3A')
-              .borderRadius(16)
-              .onClick(() => this.startEdit(task))
-            }
-          }, (task: WearTask) => task.id)
-
-          if (this.tasks.length === 0) {
-            ListItem() {
-              Text(this.tx('sync_empty'))
-                .fontSize(11)
-                .fontColor('#888888')
-                .width('100%')
-                .textAlign(TextAlign.Center)
-                .padding({ top: 16, bottom: 16 })
-            }
-          }
-        }
-        .width(this.contentW())
-        .layoutWeight(1)
-        .edgeEffect(EdgeEffect.Spring)
-        .scrollBar(BarState.Off)
-      }
+  private homeVisualId(): string {
+    const step = this.currentStepTask()?.focusStep;
+    if (!step && this.confirmedDoneTask()) return interactionVisualId('STEP_COMPLETE');
+    if (!step) return companionVisualId(this.companionState);
+    if (step.status === 'paused') return interactionVisualId('PAUSED');
+    if (step.status === 'in_progress') {
+      return interactionVisualId(this.pausedActionId === step.actionId ? 'PAUSED' : 'IN_PROGRESS');
     }
-    .width('100%')
-    .height('100%')
-    .alignItems(HorizontalAlign.Center)
-    .padding({ top: 2 })
+    return interactionVisualId('FIRST_STEP');
   }
 
+  private primaryStepLabel(): string {
+    const step = this.currentStepTask()?.focusStep;
+    const event = primaryStepEvent(step?.status ?? 'ready', this.pausedActionId === step?.actionId);
+    if (event === 'resume') return this.lang === 1 ? '继续' : 'Resume';
+    if (event === 'pause') return this.lang === 1 ? '暂停' : 'Pause';
+    return this.lang === 1 ? '开始' : 'Start';
+  }
+
+
   @Builder
-  editorPanel() {
-    Scroll() {
-      Column({ space: 5 }) {
-        Text(this.isNew ? this.tx('add') : this.tx('edit'))
+  flashPage() {
+    Column({ space: 4 }) {
+      if (!this.flashEditing) {
+        WearCompanion({ visualId: interactionVisualId('IDLE'), widthValue: 72, heightValue: 54,
+          reducedMotion: this.reducedMotion })
+      }
+      Text(this.tx('flash'))
+        .fontSize(15)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+      if (this.flashEditing) {
+        WearCompanion({ visualId: interactionVisualId(this.flashDraft.trim().length > 0 ?
+          'AWAITING_CONFIRMATION' : 'IDLE'), widthValue: 72, heightValue: 52,
+          reducedMotion: this.reducedMotion })
+        TextInput({ text: this.flashDraft, placeholder: this.tx('flash_hint') })
+          .id('flashDraftInput')
+          .defaultFocus(true)
+          .width('100%')
+          .height(42)
           .fontSize(12)
-          .fontWeight(FontWeight.Bold)
           .fontColor(Color.White)
-          .width('100%')
-          .textAlign(TextAlign.Center)
-
-        TextInput({ text: this.editTitle, placeholder: this.tx('title_hint') })
-          .width('100%')
-          .height(30)
-          .fontSize(11)
-          .fontColor(Color.White)
-          .placeholderColor('#777777')
-          .backgroundColor('#3A3A3A')
-          .borderRadius(15)
-          .padding({ left: 10, right: 10 })
-          .onChange((v: string) => {
-            this.editTitle = v;
-          })
-
-        Row({ space: 6 }) {
-          Button(`P${this.editPriority}`)
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => this.cyclePriority())
-          Button(`${this.editDueOffsetDays}d`)
-            .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => this.cycleDue())
-        }
-        .width('100%')
-
-        Row({ space: 6 }) {
+          .backgroundColor($r('app.color.surface'))
+          .borderRadius(20)
+          .onChange((value: string) => { this.flashDraft = value; })
+        Row({ space: 8 }) {
           Button(this.tx('save'))
             .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#4A7C59')
-            .onClick(() => {
-              this.saveEdit();
-            })
+            .height(40)
+            .enabled(this.flashDraft.trim().length > 0)
+            .fontColor($r('app.color.on_brand'))
+            .backgroundColor($r('app.color.brand_green'))
+            .onClick(() => this.saveFlashDraft())
           Button(this.tx('cancel'))
             .layoutWeight(1)
-            .height(28)
-            .borderRadius(14)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => {
-              this.editing = false;
-            })
+            .height(40)
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.surface'))
+            .onClick(() => { this.flashEditing = false; this.flashDraft = ''; })
         }
         .width('100%')
-
-        if (!this.isNew) {
-          Row({ space: 6 }) {
-            Button(this.tx('done'))
-              .layoutWeight(1)
-              .height(26)
-              .borderRadius(13)
-              .fontSize(10)
-              .fontColor(Color.White)
-              .backgroundColor('#555555')
-              .onClick(() => {
-                this.markDone();
-              })
-            Button(this.tx('delete'))
-              .layoutWeight(1)
-              .height(26)
-              .borderRadius(13)
-              .fontSize(10)
-              .fontColor(Color.White)
-              .backgroundColor('#7A3A3A')
-              .onClick(() => {
-                this.deleteEdit();
-              })
-          }
+      } else {
+        Button(this.lang === 1 ? '说一句' : 'Speak a note')
           .width('100%')
-        }
+          .height(46)
+          .fontSize(14)
+          .fontColor($r('app.color.on_brand'))
+          .backgroundColor($r('app.color.brand_green'))
+          .onClick(() => this.openFlashInput())
       }
-      .width(this.contentW())
-      .padding({ bottom: 8 })
+      Text(flashUiLabel(this.flashUiState, this.lang === 1))
+        .fontSize(10)
+        .fontColor(this.flashUiState === 'SAVE_FAILED' || this.flashUiState === 'SYNC_FAILED' ?
+          $r('app.color.warning') : $r('app.color.brand_green'))
+        .maxLines(2)
+        .textAlign(TextAlign.Center)
+      if (this.flashUiState === 'SYNC_FAILED') {
+        Button(this.lang === 1 ? '重试同步' : 'Retry sync')
+          .height(36)
+          .onClick(() => this.retryFlashSync())
+      }
     }
-    .width('100%')
-    .layoutWeight(1)
-    .scrollBar(BarState.Off)
-    .align(Alignment.Top)
+    .width(this.contentW())
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
   }
 
   @Builder
   pageDots() {
-    Row({ space: 8 }) {
-      Circle({ width: 7, height: 7 })
-        .fill(this.currentIndex === 0 ? Color.White : '#666666')
-        .onClick(() => {
-          this.currentIndex = 0;
-          this.swiperController.changeIndex(0, true);
-        })
-      Circle({ width: 7, height: 7 })
-        .fill(this.currentIndex === 1 ? Color.White : '#666666')
-        .onClick(() => {
-          this.currentIndex = 1;
-          this.swiperController.changeIndex(1, true);
-        })
-    }
-    .justifyContent(FlexAlign.Center)
+    Button(this.currentIndex === 0 ?
+      (this.lang === 1 ? '记闪念' : 'Quick note') :
+      (this.lang === 1 ? '‹ 返回当前一步' : '‹ Back to step'))
     .width('100%')
-    .height(18)
+    .height(40)
+    .fontSize(12)
+    .fontColor(this.currentIndex === 0 ? $r('app.color.on_brand') : $r('app.color.text_primary'))
+    .backgroundColor(this.currentIndex === 0 ? $r('app.color.brand_green') : $r('app.color.surface'))
+    .onClick(() => {
+      this.currentIndex = this.currentIndex === 0 ? 1 : 0;
+      this.swiperController.changeIndex(this.currentIndex, true);
+    })
   }
 
   build() {
     Column({ space: 2 }) {
-      // Settings at top-center (round watch safe area)
-      Text('⚙')
-        .fontSize(16)
-        .fontColor(Color.White)
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .textAlign(TextAlign.Center)
-        .backgroundColor('#444444')
-        .alignSelf(ItemAlign.Center)
-        .onClick(() => this.openSettings())
-
       Swiper(this.swiperController) {
         Column() {
           this.homePage()
@@ -754,7 +894,7 @@ struct Index {
         .alignItems(HorizontalAlign.Center)
 
         Column() {
-          this.tasksPage()
+          this.flashPage()
         }
         .width('100%')
         .height('100%')
@@ -768,12 +908,12 @@ struct Index {
       .vertical(false)
       .onChange((index: number) => {
         this.currentIndex = index;
-        if (!this.editing) {
-          this.reloadFromRemote();
-        }
+        this.reloadFromRemote();
       })
 
-      this.pageDots()
+      if (!this.flashEditing) {
+        this.pageDots()
+      }
     }
     .width('100%')
     .height('100%')
@@ -783,7 +923,7 @@ struct Index {
       top: Math.max(10, SAFE_V_TOP - 8),
       bottom: SAFE_V_BOT
     })
-    .backgroundColor('#2A2A2A')
+    .backgroundColor($r('app.color.page_background'))
     .onAreaChange((_o: Area, area: Area) => {
       const w = Number(area.width);
       const h = Number(area.height);
