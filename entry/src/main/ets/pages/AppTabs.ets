@@ -1,93 +1,175 @@
 import { promptAction } from '@kit.ArkUI';
 import { AppState } from '../services/AppState';
-import { FocusLevel, focusLevelColor, StudyMethod, StudyTask } from '../models/AppTypes';
+import { StudyMethod, StudyTask } from '../models/AppTypes';
 import { ReminderService } from '../services/ReminderService';
 import { XiaoyiBridge } from '../services/XiaoyiBridge';
-import { focusLevelLabel, methodLabel, t } from '../common/LocaleHelper';
+import { t } from '../common/LocaleHelper';
+import { CompanionView, CompanionInteraction } from '../components/CompanionView';
+import { selectUnambiguousTask } from './CurrentTaskSelection';
+import { FocusSessionService } from '../services/FocusSessionService';
+import { common } from '@kit.AbilityKit';
 
 @Component
 export struct HomeTab {
   @Link refreshToken: number;
   @Prop lang: number = 0;
-  @Prop clockText: string = '';
+  onOpenTasks: () => void = () => {};
+  onOpenSettings: () => void = () => {};
   private appState: AppState = AppState.getInstance();
+  @State showMonitor: boolean = false;
+  @State pausedActionId: string = '';
+
+  aboutToAppear(): void {
+    this.refreshSession();
+  }
+
+  private async refreshSession(): Promise<void> {
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const session = await FocusSessionService.load(context);
+      this.pausedActionId = session?.status === 'PAUSED' ? session.actionId : '';
+    } catch (_error) {
+      this.pausedActionId = '';
+    }
+  }
 
   private tx(key: string): string {
     return t(key, this.lang);
   }
 
-  private level(): FocusLevel {
-    return this.appState.latestHeartRate?.focusLevel ?? 'green';
+  private currentTask(): StudyTask | undefined {
+    return selectUnambiguousTask(this.appState.tasks);
+  }
+
+  private homeMessage(): string {
+    const task = this.currentTask();
+    if (!task) return this.appState.getPendingTasks().length === 0 ?
+      (this.lang === 1 ? '先记下一件想做的事。' : 'Let’s write down one thing to do.') :
+      (this.lang === 1 ? '从任务里选一件，作为眼前的主线。' : 'Choose one task to work on now.');
+    if (!task.focusStep) return this.lang === 1 ? '要不要从第一小步开始？' : 'Shall we find the first small step?';
+    if (task.focusStep.status === 'completed') return this.lang === 1 ? '这一步完成了。' : 'This step is done.';
+    if (task.focusStep.status === 'paused' || task.focusStep.actionId === this.pausedActionId) {
+      return this.lang === 1 ? '随时可以回来。' : 'Come back whenever you are ready.';
+    }
+    if (task.focusStep.status === 'in_progress') return this.lang === 1 ? '我们接着做这一小步。' : 'Let’s continue this small step.';
+    return this.lang === 1 ? '这一步已经准备好了。' : 'This step is ready.';
+  }
+
+  private homeAction(): string {
+    const task = this.currentTask();
+    if (!task) return this.appState.getPendingTasks().length === 0 ?
+      (this.lang === 1 ? '记下一件事' : 'Add a task') : (this.lang === 1 ? '查看任务' : 'View tasks');
+    if (!task.focusStep) return this.lang === 1 ? '拆成第一步' : 'Create a first step';
+    if (task.focusStep.status === 'completed') return this.lang === 1 ? '查看下一步' : 'View next step';
+    if (task.focusStep.status === 'ready') return this.lang === 1 ? '开始这一步' : 'Start this step';
+    return this.lang === 1 ? '继续这一步' : 'Continue this step';
+  }
+
+  private companionState(): CompanionInteraction {
+    const step = this.currentTask()?.focusStep;
+    if (!step) return 'IDLE';
+    if (step.status === 'completed') return 'COMPLETE';
+    if (step.status === 'paused' || step.actionId === this.pausedActionId) return 'PAUSED';
+    return step.status === 'in_progress' ? 'ACTIVE' : 'STEP';
+  }
+
+  private openStep(task: StudyTask): void {
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/StepSessionPage', params: { taskId: task.id } }).catch(() => {});
+  }
+
+  @Builder
+  private monitorSheet() {
+    Column({ space: 12 }) {
+      Row() {
+        Text(this.lang === 1 ? '手表与监测' : 'Watch and monitoring')
+          .fontSize(19).fontWeight(FontWeight.Bold).fontColor('#25332C')
+        Blank()
+        Button(this.lang === 1 ? '关闭' : 'Close').height(36).backgroundColor('#E9EFE7').fontColor('#25332C')
+          .onClick(() => this.showMonitor = false)
+      }.width('100%')
+      Text(this.lang === 1 ? '手表连接：未知' : 'Watch connection: Unknown')
+        .width('100%').fontSize(14).fontColor('#526259')
+      Text(this.appState.monitoring ?
+        (this.lang === 1 ? '本地监测服务已启动；设备来源未确认' : 'Local monitoring is running; device source unverified') :
+        (this.lang === 1 ? '监测：已停止' : 'Monitoring: Stopped'))
+        .width('100%').fontSize(14).fontColor('#526259')
+      if (this.appState.latestHeartRate) {
+        Text(`${this.lang === 1 ? '最近数据' : 'Latest sample'}: ${new Date(this.appState.latestHeartRate.timestamp).toLocaleString()}`)
+          .width('100%').fontSize(12).fontColor('#66736A')
+        Text(this.appState.latestHeartRate.isSimulated === false ?
+          (this.lang === 1 ? '数据来源待设备线确认' : 'Source pending device verification') :
+          (this.lang === 1 ? '模拟数据 · 不是设备监测' : 'Simulated data · not device monitoring'))
+          .width('100%').fontSize(12).fontColor('#8A641A')
+      } else {
+        Text(this.lang === 1 ? '暂无传感器数据。连接功能尚未接入。' : 'No sensor data. Device connection is not available yet.')
+          .width('100%').fontSize(12).fontColor('#66736A')
+      }
+    }.width('100%').padding(22).backgroundColor('#FFFFFF')
   }
 
   build() {
-    Scroll() {
-      Column({ space: 18 }) {
-        Text(`${this.tx('home_overview')}`)
-          .fontSize($r('app.float.title_font'))
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .alignSelf(ItemAlign.Start)
-          .opacity(this.lang >= 0 ? 1 : 1)
-
-        Text(`${this.tx('system_time')} ${this.clockText}`)
-          .fontSize(16)
-          .fontColor($r('app.color.text_secondary'))
-          .alignSelf(ItemAlign.Start)
-
-        Column({ space: 8 }) {
-          Text(this.tx('metric_heart_rate'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-          Text(`${this.appState.latestHeartRate?.bpm ?? '--'} ${this.tx('bpm_unit')}`)
-            .fontSize(32)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-          Text(`${this.tx('metric_focus_status')}: ${focusLevelLabel(this.level(), this.lang)}`)
-            .fontSize(14)
-            .fontColor(focusLevelColor(this.level()))
-          Text(this.tx('xiaoyi_hr_hint'))
-            .fontSize(12)
-            .fontColor($r('app.color.text_secondary'))
+    Column({ space: 0 }) {
+      Row() {
+        Row({ space: 7 }) {
+          Column().width(12).height(12).backgroundColor('#6FA86D').borderRadius(3)
+          Text(this.lang === 1 ? '手表状态' : 'Watch status').fontSize(13).fontColor('#526259')
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-        .padding(16)
-        .backgroundColor($r('app.color.surface'))
-        .borderRadius(12)
+          .height(48).padding({ left: 8, right: 8 })
+          .accessibilityText(this.lang === 1 ? '查看手表连接和监测状态' : 'View watch connection and monitoring status')
+          .onClick(() => this.showMonitor = !this.showMonitor)
+        Blank()
+        Text('⚙')
+          .fontSize(24).fontColor('#25332C').width(48).height(48)
+          .textAlign(TextAlign.Center)
+          .accessibilityText(this.lang === 1 ? '打开设置' : 'Open settings')
+          .onClick(() => this.onOpenSettings())
+      }.width('100%').padding({ left: 14, right: 10, top: 6 })
 
-        Button(this.tx('btn_focus'))
-          .width('100%')
-          .height(52)
-          .fontSize(18)
-          .fontColor(Color.White)
-          .backgroundColor('#555555')
-          .border({ width: 1, color: Color.White })
-          .opacity(this.lang >= 0 ? 1 : 1)
+      Column({ space: 0 }) {
+        if (this.appState.dataError.length > 0) {
+          Text(this.lang === 1 ? this.appState.dataError : 'Local data could not be loaded. Check storage and retry.')
+            .fontSize(13).fontColor('#A13C32').width('100%')
+        }
+        CompanionView({ placement: 'HOME', interactionState: this.companionState(), compact: false,
+          message: this.homeMessage() })
+          .layoutWeight(1)
+        Text(this.homeMessage())
+          .fontSize(23).fontWeight(FontWeight.Medium).fontColor('#25332C')
+          .textAlign(TextAlign.Center).width('100%').maxLines(3)
+        if (this.currentTask()) {
+          Text(this.currentTask()?.focusStep?.text ?? this.currentTask()?.title ?? '')
+            .fontSize(15).fontColor('#526259').textAlign(TextAlign.Center)
+            .width('100%').maxLines(2).margin({ top: 10 })
+        } else if (this.appState.getPendingTasks().length > 0) {
+          Text(this.lang === 1 ? '请在任务页选择当前行动' : 'Choose the current action in Tasks')
+            .fontSize(14).fontColor('#526259').textAlign(TextAlign.Center)
+            .width('100%').margin({ top: 10 })
+        }
+        Button(this.homeAction())
+          .width('100%').height(54).margin({ top: 24, bottom: 18 })
+          .fontSize(18).fontColor(Color.White).backgroundColor('#386A45')
           .onClick(() => {
-            this.getUIContext().getRouter().pushUrl({ url: 'pages/FocusPage' })
-              .catch(() => {
-              });
-          })
-
-        Button(this.tx('btn_remind'))
-          .width('100%')
-          .height(44)
-          .fontColor(Color.White)
-          .backgroundColor('#444444')
-          .opacity(this.lang >= 0 ? 1 : 1)
-          .onClick(async () => {
-            await ReminderService.getInstance().remindNow(this.appState.getPendingTasks());
-            promptAction.showToast({ message: this.tx('reminder_title') });
-            this.refreshToken++;
+            const task = this.currentTask();
+            if (task?.focusStep?.status === 'completed') {
+              this.onOpenTasks();
+            } else if (task) {
+              this.openStep(task);
+            } else {
+              this.onOpenTasks();
+            }
           })
       }
-      .padding(20)
-      .width('100%')
+        .width('100%').layoutWeight(1)
+        .padding({ left: 24, right: 24 })
     }
-    .backgroundColor($r('app.color.page_background'))
+    .backgroundColor('#FAF9F4')
     .height('100%')
+    .width('100%')
+    .bindSheet(this.showMonitor, this.monitorSheet(), {
+      onDisappear: () => { this.showMonitor = false; }
+    })
     .onVisibleAreaChange([0.0, 1.0], () => {
+      this.refreshSession();
       this.refreshToken++;
     })
   }
@@ -100,6 +182,10 @@ export struct TasksTab {
   private appState: AppState = AppState.getInstance();
   private bridge: XiaoyiBridge = XiaoyiBridge.getInstance();
   @State showEditor: boolean = false;
+  @State showMoreOptions: boolean = false;
+  @State quickTitle: string = '';
+  @State taskError: string = '';
+  @State deleteArmed: boolean = false;
   @State editingId: string = '';
   @State selectedId: string = '';
   @State draftTitle: string = '';
@@ -109,7 +195,6 @@ export struct TasksTab {
   @State draftMethod: string = 'reading';
   @State draftPriority: number = 2;
   @State draftInsight: string = '';
-  @State advisingId: string = '';
   @State pendingTasks: StudyTask[] = [];
   @State voiceBusy: boolean = false;
   private escalateTimer: number = -1;
@@ -160,10 +245,6 @@ export struct TasksTab {
     this.refreshToken++;
   }
 
-  private defaultDeadlineText(): string {
-    return this.formatDeadlineText(Date.now() + 24 * 60 * 60 * 1000);
-  }
-
   private formatDeadlineText(ts: number): string {
     const d = new Date(ts);
     const y = d.getFullYear();
@@ -174,8 +255,9 @@ export struct TasksTab {
     return `${y}-${mo}-${day} ${hh}:${mi}`;
   }
 
-  private parseDeadline(text: string): number {
+  private parseDeadline(text: string): number | undefined {
     const trimmed = text.trim();
+    if (trimmed.length === 0) return undefined;
     // YYYY-MM-DD HH:mm
     const matched = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
     if (matched) {
@@ -193,7 +275,7 @@ export struct TasksTab {
     if (!Number.isNaN(asNum) && asNum > 100000) {
       return asNum;
     }
-    return Date.now() + 24 * 60 * 60 * 1000;
+    return undefined;
   }
 
   private openNew(): void {
@@ -202,10 +284,12 @@ export struct TasksTab {
     this.draftTitle = '';
     this.draftContent = '';
     this.draftMinutes = '25';
-    this.draftDeadline = this.defaultDeadlineText();
+    this.draftDeadline = '';
     this.draftMethod = 'reading';
     this.draftPriority = 2;
     this.draftInsight = '';
+    this.showMoreOptions = false;
+    this.deleteArmed = false;
     this.showEditor = true;
   }
 
@@ -215,11 +299,36 @@ export struct TasksTab {
     this.draftTitle = task.title;
     this.draftContent = task.content;
     this.draftMinutes = `${task.studyMinutes}`;
-    this.draftDeadline = this.formatDeadlineText(task.dueAt ?? task.createdAt);
+    this.draftDeadline = task.dueAt ? this.formatDeadlineText(task.dueAt) : '';
     this.draftMethod = task.studyMethod;
     this.draftPriority = task.basePriority ?? task.priority;
     this.draftInsight = task.insight ?? '';
+    this.showMoreOptions = false;
+    this.deleteArmed = false;
     this.showEditor = true;
+  }
+
+  private async quickAdd(): Promise<void> {
+    const title = this.quickTitle.trim();
+    if (!title) return;
+    this.taskError = '';
+    try {
+      const task = this.appState.createBlankTask();
+      task.title = title;
+      task.content = '';
+      task.dueAt = undefined;
+      task.priority = 2;
+      task.basePriority = 2;
+      await this.appState.addTask(task);
+      this.quickTitle = '';
+      await this.refreshFromLocal();
+    } catch (_error) {
+      this.taskError = this.lang === 1 ? '任务未能保存，请重试。' : 'Task could not be saved. Please retry.';
+    }
+  }
+
+  private openStepSession(task: StudyTask): void {
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/StepSessionPage', params: { taskId: task.id } }).catch(() => {});
   }
 
   private selectedTask(): StudyTask | undefined {
@@ -246,6 +355,12 @@ export struct TasksTab {
       return;
     }
     const dueAt = this.parseDeadline(this.draftDeadline);
+    if (this.draftDeadline.trim().length > 0 && dueAt === undefined) {
+      this.taskError = this.lang === 1 ? '请按 YYYY-MM-DD HH:mm 填写截止时间。' : 'Use YYYY-MM-DD HH:mm for the deadline.';
+      return;
+    }
+    this.taskError = '';
+    try {
     if (this.editingId.length > 0) {
       const existing = this.appState.tasks.find((item: StudyTask) => item.id === this.editingId);
       if (existing) {
@@ -274,8 +389,12 @@ export struct TasksTab {
     }
     await this.appState.refreshDeadlinePriorities();
     this.showEditor = false;
+    this.deleteArmed = false;
     await this.refreshFromLocal();
     promptAction.showToast({ message: this.tx('task_saved_view') });
+    } catch (_error) {
+      this.taskError = this.lang === 1 ? '任务未能保存，请重试。' : 'Task could not be saved. Please retry.';
+    }
   }
 
   private async clearSelected(): Promise<void> {
@@ -285,6 +404,7 @@ export struct TasksTab {
     await this.appState.clearTask(this.selectedId);
     this.selectedId = '';
     this.editingId = '';
+    this.deleteArmed = false;
     this.showEditor = false;
     await this.refreshFromLocal();
   }
@@ -333,18 +453,6 @@ export struct TasksTab {
     }
   }
 
-  private async requestAdvice(task: StudyTask): Promise<void> {
-    this.advisingId = task.id;
-    const level = this.appState.latestHeartRate?.focusLevel ?? 'green';
-    const label = this.bridge.focusLabel(level);
-    const advice = await this.bridge.askAdvice(task, label);
-    task.insight = advice;
-    await this.appState.updateTask(task);
-    this.advisingId = '';
-    this.reloadPending();
-    this.refreshToken++;
-  }
-
   build() {
     Column({ space: 10 }) {
       Column({ space: 8 }) {
@@ -356,81 +464,102 @@ export struct TasksTab {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Row({ space: 8 }) {
+          TextInput({ text: this.quickTitle, placeholder: this.lang === 1 ? '记下一件想做的事…' : 'Write one thing to do…' })
+            .layoutWeight(1).height(46).backgroundColor('#FFFFFF').fontColor('#25332C')
+            .onChange((value: string) => this.quickTitle = value)
+          Button(this.lang === 1 ? '添加' : 'Add').height(44).fontColor(Color.White).backgroundColor('#386A45')
+            .onClick(async () => await this.quickAdd())
+        }.width('100%')
+        Row({ space: 8 }) {
           Button(this.tx('btn_voice_add'))
             .layoutWeight(1)
             .height(36)
             .fontSize(13)
             .fontColor(Color.White)
-            .backgroundColor('#666666')
+            .backgroundColor('#526259')
             .enabled(!this.voiceBusy)
             .onClick(async () => await this.voiceAddAndSave())
-          Button(this.tx('btn_add_task'))
+          Button(this.lang === 1 ? '更多字段' : 'More fields')
             .layoutWeight(1)
             .height(36)
             .fontSize(13)
             .fontColor(Color.White)
-            .backgroundColor('#555555')
-            .onClick(() => this.openNew())
+            .backgroundColor('#E4F1DA')
+            .fontColor('#25332C')
+            .onClick(() => {
+              this.openNew();
+              this.draftTitle = this.quickTitle;
+            })
         }
         .width('100%')
       }
       .width('100%')
       .padding({ left: 20, right: 20, top: 16 })
 
+      if (this.taskError.length > 0) {
+        Text(this.taskError).fontSize(13).fontColor('#A13C32').width('100%')
+          .padding({ left: 20, right: 20 })
+      }
+
       if (this.showEditor) {
+        Scroll() {
         Column({ space: 10 }) {
           Text(this.editingId.length > 0 ? this.tx('edit_task') : this.tx('btn_add_task'))
             .fontColor($r('app.color.text_primary'))
             .alignSelf(ItemAlign.Start)
           TextInput({ text: this.draftTitle, placeholder: this.tx('task_title') })
-            .fontColor(Color.White)
-            .placeholderColor('#AAAAAA')
-            .backgroundColor('#444444')
+            .fontColor('#25332C')
+            .placeholderColor('#778078')
+            .backgroundColor('#FFFFFF')
             .onChange((value: string) => this.draftTitle = value)
+          Button(this.showMoreOptions ? (this.lang === 1 ? '收起更多选项' : 'Hide options') : (this.lang === 1 ? '更多选项：内容、时间、优先级' : 'More: notes, deadline, priority'))
+            .width('100%').backgroundColor('#E9EFE7').fontColor('#25332C').onClick(() => this.showMoreOptions = !this.showMoreOptions)
+          if (this.showMoreOptions) {
           TextArea({ text: this.draftContent, placeholder: this.tx('learning_content') })
             .height(70)
-            .fontColor(Color.White)
-            .placeholderColor('#AAAAAA')
-            .backgroundColor('#444444')
+            .fontColor('#25332C')
+            .placeholderColor('#778078')
+            .backgroundColor('#FFFFFF')
             .onChange((value: string) => this.draftContent = value)
           Text(this.tx('deadline_label'))
             .fontSize(13)
             .fontColor($r('app.color.text_secondary'))
             .alignSelf(ItemAlign.Start)
           TextInput({ text: this.draftDeadline, placeholder: this.tx('due_time') })
-            .fontColor(Color.White)
-            .placeholderColor('#AAAAAA')
-            .backgroundColor('#444444')
+            .fontColor('#25332C')
+            .placeholderColor('#778078')
+            .backgroundColor('#FFFFFF')
             .onChange((value: string) => this.draftDeadline = value)
           Row({ space: 6 }) {
             Button(this.tx('priority_high'))
               .layoutWeight(1)
               .height(36)
               .fontSize(12)
-              .backgroundColor(this.draftPriority === 1 ? '#777777' : '#444444')
-              .fontColor(Color.White)
+              .backgroundColor(this.draftPriority === 1 ? '#E4F1DA' : '#FFFFFF')
+              .fontColor('#25332C')
               .onClick(() => this.draftPriority = 1)
             Button(this.tx('priority_medium'))
               .layoutWeight(1)
               .height(36)
               .fontSize(12)
-              .backgroundColor(this.draftPriority === 2 ? '#777777' : '#444444')
-              .fontColor(Color.White)
+              .backgroundColor(this.draftPriority === 2 ? '#E4F1DA' : '#FFFFFF')
+              .fontColor('#25332C')
               .onClick(() => this.draftPriority = 2)
             Button(this.tx('priority_low'))
               .layoutWeight(1)
               .height(36)
               .fontSize(12)
-              .backgroundColor(this.draftPriority === 3 ? '#777777' : '#444444')
-              .fontColor(Color.White)
+              .backgroundColor(this.draftPriority === 3 ? '#E4F1DA' : '#FFFFFF')
+              .fontColor('#25332C')
               .onClick(() => this.draftPriority = 3)
           }
           .width('100%')
+          }
           Button(this.voiceBusy ? this.tx('voice_listening') : this.tx('btn_voice'))
             .width('100%')
             .height(36)
             .fontSize(13)
-            .backgroundColor('#555555')
+            .backgroundColor('#526259')
             .fontColor(Color.White)
             .enabled(!this.voiceBusy)
             .onClick(async () => await this.voiceInput())
@@ -438,29 +567,45 @@ export struct TasksTab {
             Button(this.tx('btn_save'))
               .layoutWeight(1)
               .fontColor(Color.White)
-              .backgroundColor('#555555')
+              .backgroundColor('#386A45')
               .onClick(async () => await this.saveTask())
             Button(this.tx('btn_cancel'))
               .layoutWeight(1)
-              .backgroundColor('#333333')
-              .fontColor(Color.White)
+              .backgroundColor('#E9EFE7')
+              .fontColor('#25332C')
               .onClick(() => {
                 this.showEditor = false;
+                this.deleteArmed = false;
               })
           }
           .width('100%')
           if (this.selectedId.length > 0) {
-            Button(this.tx('btn_clear'))
+            Button(this.tx('btn_remind'))
+              .width('100%').height(40).backgroundColor('#E4F1DA').fontColor('#25332C')
+              .onClick(async () => {
+                const selected = this.selectedTask();
+                if (selected) {
+                  await ReminderService.getInstance().remindNow([selected]);
+                  promptAction.showToast({ message: this.tx('reminder_title') });
+                }
+              })
+            Button(this.deleteArmed ? (this.lang === 1 ? '再次点击确认删除' : 'Tap again to delete') : this.tx('btn_clear'))
               .width('100%')
               .height(40)
               .fontColor(Color.White)
               .backgroundColor($r('app.color.danger'))
-              .onClick(async () => await this.clearSelected())
+              .onClick(async () => {
+                if (this.deleteArmed) await this.clearSelected();
+                else this.deleteArmed = true;
+              })
           }
         }
         .width('100%')
         .padding({ left: 20, right: 20 })
-      }
+        }
+        .layoutWeight(1)
+        .edgeEffect(EdgeEffect.Spring)
+      } else {
 
       Text(`${this.tx('pending_list')} (${this.pendingTasks.length})`)
         .fontSize(18)
@@ -490,9 +635,10 @@ export struct TasksTab {
                   .fontColor(task.priority === 1 ? '#E74C3C' : $r('app.color.text_secondary'))
               }
               .width('100%')
-              Text(`${this.tx('deadline_label')}: ${this.formatDeadlineText(task.dueAt ?? task.createdAt)}`)
-                .fontSize($r('app.float.caption_font'))
-                .fontColor($r('app.color.text_secondary'))
+              if (task.dueAt) {
+                Text(`${this.tx('deadline_label')}: ${this.formatDeadlineText(task.dueAt)}`)
+                  .fontSize($r('app.float.caption_font')).fontColor($r('app.color.text_secondary'))
+              }
               if (this.wasEscalated(task)) {
                 Text(this.tx('priority_auto'))
                   .fontSize(12)
@@ -503,42 +649,31 @@ export struct TasksTab {
                   .fontSize(13)
                   .fontColor($r('app.color.text_primary'))
               }
-              if (this.selectedId === task.id) {
-                Row({ space: 8 }) {
-                  Button(this.tx('btn_xiaoyi_advice'))
-                    .layoutWeight(1)
-                    .height(32)
-                    .fontSize(12)
-                    .fontColor(Color.White)
-                    .backgroundColor('#555555')
-                    .enabled(this.advisingId !== task.id)
-                    .onClick(async () => await this.requestAdvice(task))
-                  Button(this.tx('btn_clear'))
-                    .layoutWeight(1)
-                    .height(32)
-                    .fontSize(12)
-                    .fontColor(Color.White)
-                    .backgroundColor($r('app.color.danger'))
-                    .onClick(async () => {
-                      this.selectedId = task.id;
-                      await this.clearSelected();
-                    })
-                }
-                .width('100%')
+              if (task.focusStep) {
+                Text(`${this.lang === 1 ? '第一小步' : 'First step'}: ${task.focusStep.text}`)
+                  .fontSize(13)
+                  .fontColor($r('app.color.text_primary'))
               }
+              Row({ space: 8 }) {
+                Button(task.focusStep && task.focusStep.status !== 'completed' ?
+                  (this.lang === 1 ? '查看这一步' : 'View this step') :
+                  (this.lang === 1 ? '拆成第一步' : 'Create first step'))
+                  .layoutWeight(1).height(40).fontColor(Color.White).backgroundColor('#386A45')
+                  .onClick(() => this.openStepSession(task))
+                Button('⋯').width(44).height(40).backgroundColor('#E9EFE7').fontColor('#25332C')
+                  .accessibilityText(this.lang === 1 ? '编辑任务' : 'Edit task')
+                  .onClick(() => this.selectTask(task))
+              }.width('100%')
             }
             .padding(16)
             .width('100%')
-            .backgroundColor(this.selectedId === task.id ? '#4A4A4A' : $r('app.color.surface'))
-            .borderRadius(14)
+            .backgroundColor('#FFFFFF')
+            .borderRadius(18)
             .border({
               width: this.selectedId === task.id ? 1 : 0,
-              color: Color.White
+              color: '#D8E2D7'
             })
-            .onClick(() => this.selectTask(task))
-            .animation({ duration: 250, curve: Curve.EaseInOut })
           }
-          .transition({ type: TransitionType.Insert, opacity: 0, translate: { y: 20 } })
         }, (task: StudyTask) =>
           `${task.id}_${task.priority}_${task.dueAt}_${this.lang}_${this.refreshToken}_${task.insight ?? ''}`)
       }
@@ -550,8 +685,9 @@ export struct TasksTab {
       .onAppear(async () => {
         await this.refreshFromLocal();
       })
+      }
     }
-    .backgroundColor($r('app.color.page_background'))
+    .backgroundColor('#FAF9F4')
     .height('100%')
     .onAppear(async () => {
       await this.refreshFromLocal();

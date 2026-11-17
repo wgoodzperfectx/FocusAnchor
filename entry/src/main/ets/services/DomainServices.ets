@@ -52,7 +52,8 @@ export class HeartRateService {
       timestamp: Date.now(),
       zone,
       focusLevel,
-      message
+      message,
+      isSimulated: true
     };
   }
 

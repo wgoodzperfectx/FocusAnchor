@@ -18,6 +18,7 @@ export default class EntryAbility extends UIAbility {
       this.loadIndex(windowStage);
     }).catch((err: Error) => {
       hilog.error(DOMAIN, 'FocusAnchor', `Bootstrap failed: ${JSON.stringify(err)}`);
+      AppState.getInstance().dataError = '本地数据读取失败，请检查存储后重试';
       this.loadIndex(windowStage);
     });
   }

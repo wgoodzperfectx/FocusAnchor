@@ -1,271 +1,184 @@
 import { AppState } from '../services/AppState';
-import { XiaoyiBridge } from '../services/XiaoyiBridge';
-import { FocusLevel, focusLevelColor, focusLevelFromBpm } from '../models/AppTypes';
-import { focusLevelLabel, t } from '../common/LocaleHelper';
+import { FlashNote, StudyTask } from '../models/AppTypes';
+import { FocusSessionService } from '../services/FocusSessionService';
+import { common } from '@kit.AbilityKit';
+import { CompanionView } from '../components/CompanionView';
+import { selectUnambiguousTask } from './CurrentTaskSelection';
 
 @Entry
 @Component
 struct FocusPage {
-  @State bpm: number = 78;
-  @State level: FocusLevel = 'green';
-  @State ringColor: string = '#2BB673';
   @State lang: number = 0;
-  /** 1 → minScale: white disc shrinks toward center ⚪ */
-  @State discScale: number = 1;
-  @State contentOpacity: number = 0;
-  @State wavePhase: number = 0;
-  @State barWidth: number = 360;
-  @State pageH: number = 800;
-  @State pageW: number = 360;
-  @State showIris: boolean = true;
+  @State task: StudyTask | undefined = undefined;
+  @State flashNotes: FlashNote[] = [];
+  @State sessionStatus: string = 'IDLE';
+  @State actionError: string = '';
+  @State confirmConvertId: string = '';
+  @State confirmArchiveId: string = '';
+  @State busy: boolean = false;
   private appState: AppState = AppState.getInstance();
-  private bridge: XiaoyiBridge = XiaoyiBridge.getInstance();
-  private waveTimer: number = -1;
-  private coverTimer: number = -1;
-  private settings: RenderingContextSettings = new RenderingContextSettings(true);
-  private waveContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
-
-  private tx(key: string): string {
-    return t(key, this.lang);
-  }
+  private flashPollTimer: number = -1;
 
   aboutToAppear(): void {
     this.lang = this.appState.settings.language ?? 0;
-    const current = this.appState.latestHeartRate?.bpm ?? 78;
-    this.applyBpm(current);
-    this.bridge.startHeartRateStream((bpm: number) => {
-      this.applyBpm(bpm);
-      this.appState.applyBpm(bpm);
-    });
-    this.appState.monitoring = true;
-    this.discScale = 1;
-    this.contentOpacity = 0;
-    this.showIris = true;
-    setTimeout(() => {
-      this.playEntrance();
-    }, 60);
+    this.refreshWorkspace();
+    this.flashPollTimer = setInterval(() => {
+      this.flashNotes = [...this.appState.flashNotes.filter((note: FlashNote) => !note.archived)];
+    }, 1500);
+  }
+
+  onPageShow(): void {
+    this.refreshWorkspace();
   }
 
   aboutToDisappear(): void {
-    this.stopCover();
-    this.stopWave();
-    this.bridge.stopHeartRateStream();
-    this.appState.stopMonitoring();
+    if (this.flashPollTimer !== -1) clearInterval(this.flashPollTimer);
+    this.flashPollTimer = -1;
   }
 
-  private applyBpm(bpm: number): void {
-    this.bpm = bpm;
-    this.level = focusLevelFromBpm(bpm);
-    this.ringColor = focusLevelColor(this.level);
-  }
-
-  /** Diameter large enough to cover the whole screen (diagonal). */
-  private coverDiameter(): number {
-    const w = this.pageW > 0 ? this.pageW : 360;
-    const h = this.pageH > 0 ? this.pageH : 800;
-    return Math.sqrt(w * w + h * h) * 1.08;
-  }
-
-  /** Final size of the center ⚪ before reveal. */
-  private endDiameter(): number {
-    return 36;
-  }
-
-  private minScale(): number {
-    return this.endDiameter() / this.coverDiameter();
-  }
-
-  private playEntrance(): void {
-    this.stopCover();
-    this.discScale = 1;
-    this.contentOpacity = 0;
-    this.showIris = true;
-    const steps = 36;
-    const target = this.minScale();
-    let i = 0;
-    this.coverTimer = setInterval(() => {
-      i++;
-      // Ease-in: shrink faster near the end so the ⚪ is readable
-      const t = i / steps;
-      const eased = t * t;
-      this.discScale = 1 - (1 - target) * eased;
-      if (i >= steps) {
-        this.discScale = target;
-        this.stopCover();
-        // Hold the small white circle briefly
-        setTimeout(() => {
-          this.showIris = false;
-          this.getUIContext().animateTo({
-            duration: 480,
-            curve: Curve.EaseOut,
-            onFinish: () => {
-              this.startWave();
-            }
-          }, () => {
-            this.contentOpacity = 1;
-          });
-        }, 220);
-      }
-    }, 18);
-  }
-
-  private stopCover(): void {
-    if (this.coverTimer !== -1) {
-      clearInterval(this.coverTimer);
-      this.coverTimer = -1;
+  private async refreshWorkspace(): Promise<void> {
+    try {
+    await this.appState.reloadTasksFromDisk();
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>;
+    const requested = params?.['taskId'] ?? '';
+    const current = requested ? this.appState.getPendingTasks().find((item: StudyTask) => item.id === requested) :
+      selectUnambiguousTask(this.appState.tasks);
+    this.task = current;
+    this.flashNotes = [...this.appState.flashNotes.filter((note: FlashNote) => !note.archived)];
+    this.sessionStatus = 'IDLE';
+    if (current?.focusStep?.actionId) {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const session = await FocusSessionService.load(context);
+      this.sessionStatus = session && session.actionId === current.focusStep.actionId ? session.status : 'IDLE';
+    }
+    } catch (_error) {
+      this.actionError = this.lang === 1 ? '暂时无法读取主线任务。' : 'Could not load the current task.';
+      this.task = undefined;
     }
   }
 
-  private startWave(): void {
-    this.stopWave();
-    this.drawWave();
-    this.waveTimer = setInterval(() => {
-      this.wavePhase += 0.2;
-      this.drawWave();
-    }, 33);
-  }
-
-  private stopWave(): void {
-    if (this.waveTimer !== -1) {
-      clearInterval(this.waveTimer);
-      this.waveTimer = -1;
+  private async convertFlash(flashId: string): Promise<void> {
+    if (this.confirmConvertId !== flashId) {
+      this.confirmConvertId = flashId;
+      return;
+    }
+    this.busy = true;
+    this.actionError = '';
+    try {
+      const taskId = await this.appState.convertFlashToTask(flashId);
+      if (!taskId) throw new Error('conversion unavailable');
+      this.confirmConvertId = '';
+      await this.refreshWorkspace();
+    } catch (_error) {
+      this.actionError = this.lang === 1 ? '转为任务失败，可稍后重试。' : 'Could not convert this note. Retry later.';
+    } finally {
+      this.busy = false;
     }
   }
 
-  private drawWave(): void {
-    const ctx = this.waveContext;
-    const w = this.barWidth > 0 ? this.barWidth : this.pageW;
-    const h = 56;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#87CEEB';
-    ctx.fillRect(0, 0, w, h);
-    ctx.beginPath();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    const midY = h / 2;
-    const amp = h * 0.28;
-    const wavelength = Math.max(80, w / 2.2);
-    for (let x = 0; x <= w; x += 2) {
-      const y = midY + amp * Math.sin((x / wavelength) * Math.PI * 2 + this.wavePhase);
-      if (x === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
+  private async archiveFlash(flashId: string): Promise<void> {
+    if (this.confirmArchiveId !== flashId) {
+      this.confirmArchiveId = flashId;
+      return;
     }
-    ctx.stroke();
+    try {
+      await this.appState.archiveFlash(flashId);
+      this.confirmArchiveId = '';
+      this.flashNotes = [...this.appState.flashNotes.filter((note: FlashNote) => !note.archived)];
+    } catch (_error) {
+      this.actionError = this.lang === 1 ? '暂时无法归档，请重试。' : 'Could not archive this note. Please retry.';
+    }
   }
 
-  private exitPage(): void {
-    this.stopCover();
-    this.stopWave();
-    this.bridge.stopHeartRateStream();
-    this.appState.stopMonitoring();
-    this.getUIContext().getRouter().back();
+  private openStep(): void {
+    if (!this.task?.id) return;
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/StepSessionPage', params: { taskId: this.task.id } }).catch(() => {});
   }
 
   build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(Color.Black)
-
-      Column() {
-        Row() {
-          Blank()
-          Text('<')
-            .fontSize(28)
-            .fontColor(Color.White)
-            .padding(12)
-            .opacity(this.contentOpacity)
-            .onClick(() => this.exitPage())
-        }
-        .width('100%')
-        .padding({ top: 12, right: 8 })
-
+    Column({ space: 16 }) {
+      Row() {
+        Text(this.lang === 1 ? 'Focus · 闪念沙盒' : 'Focus · Flash sandbox')
+          .fontSize(23).fontWeight(FontWeight.Bold).fontColor('#25332C')
         Blank()
+        Text(this.lang === 1 ? '返回' : 'Back').fontSize(15).fontColor('#386A45')
+          .accessibilityText(this.lang === 1 ? '返回上一页' : 'Go back')
+          .onClick(() => this.getUIContext().getRouter().back())
+      }.width('100%')
 
-        Stack({ alignContent: Alignment.Center }) {
-          Circle({ width: 220, height: 220 })
-            .fill(Color.Transparent)
-            .stroke(this.ringColor)
-            .strokeWidth(10)
-          Column({ space: 8 }) {
-            Text(`${this.bpm}`)
-              .fontSize(48)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(Color.White)
-            Text(this.tx('bpm_unit'))
-              .fontSize(14)
-              .fontColor('#CCCCCC')
-            Text(focusLevelLabel(this.level, this.lang))
-              .fontSize(16)
-              .fontColor(this.ringColor)
+      Column({ space: 8 }) {
+        Text(this.lang === 1 ? '当前主线' : 'Current thread').fontSize(12).fontColor('#66736A')
+        if (this.task?.focusStep) {
+          Text(this.task.title).fontSize(17).fontWeight(FontWeight.Medium).fontColor('#25332C').maxLines(2)
+          Text(this.task.focusStep.text).fontSize(14).fontColor('#526259').maxLines(2)
+          if (this.task.focusStep.status !== 'completed') {
+            Button(this.lang === 1 ? '回到这一步' : 'Return to this step')
+              .width('100%').height(44).fontColor(Color.White).backgroundColor('#386A45').onClick(() => this.openStep())
+          } else {
+            Text(this.lang === 1 ? '这一步已完成' : 'This step is complete').fontSize(12).fontColor('#386A45')
           }
+          if (this.sessionStatus === 'RUNNING' || this.task.focusStep.status === 'in_progress') {
+            Text(this.lang === 1 ? '行动进行中' : 'Action in progress').fontSize(12).fontColor('#386A45')
+          } else if (this.sessionStatus === 'PAUSED' || this.task.focusStep.status === 'paused') {
+            Text(this.lang === 1 ? '行动已暂停' : 'Action paused').fontSize(12).fontColor('#8A641A')
+          }
+        } else {
+          Text(this.lang === 1 ? '当前没有唯一的进行中步骤。可从任务列表选择一条主线。' : 'No single current step. Choose a thread from Tasks.')
+            .fontSize(14).fontColor('#526259')
         }
-        .opacity(this.contentOpacity)
-        .scale({
-          x: 0.55 + 0.45 * this.contentOpacity,
-          y: 0.55 + 0.45 * this.contentOpacity
-        })
+      }.width('100%').padding(16).backgroundColor('#F1F6EC').borderRadius(18)
 
+      Row() {
+        Text(this.lang === 1 ? '已替你记下的闪念' : 'Flash notes').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#25332C')
         Blank()
+        Text(`${this.flashNotes.length}`).fontSize(13).fontColor('#66736A')
+      }.width('100%')
 
-        Column() {
-          Canvas(this.waveContext)
-            .width('100%')
-            .height(56)
-            .onReady(() => {
-              this.drawWave();
-            })
-            .onAreaChange((_oldValue: Area, newValue: Area) => {
-              const w = Number(newValue.width);
-              if (!Number.isNaN(w) && w > 0) {
-                this.barWidth = w;
-                this.drawWave();
-              }
-            })
-        }
-        .width('100%')
-        .height(56)
-        .backgroundColor('#87CEEB')
-        .opacity(this.contentOpacity)
-        .clip(true)
+      if (this.flashNotes.length === 0) {
+        Column({ space: 8 }) {
+          Text(this.lang === 1 ? '突然想到什么，可以先用手表记下来。' : 'Capture a thought on your watch and return to it here.')
+            .fontSize(14).fontColor('#526259')
+          Text(this.lang === 1 ? '当前不提供跨设备录入状态保证。' : 'Cross-device capture availability is not confirmed.')
+            .fontSize(12).fontColor('#7A827B')
+        }.width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
+      } else {
+        List({ space: 10 }) {
+          ForEach(this.flashNotes, (note: FlashNote) => {
+            ListItem() {
+              Column({ space: 10 }) {
+                Text(note.content).width('100%').fontSize(15).fontColor('#25332C').maxLines(5)
+                Row() {
+                  Text(note.syncStatus === 'synced' ? (this.lang === 1 ? '已同步' : 'Synced') : (this.lang === 1 ? '待同步' : 'Pending sync'))
+                    .fontSize(12).fontColor(note.syncStatus === 'synced' ? '#386A45' : '#8A641A')
+                  Blank()
+                  Text(new Date(note.createdAt).toLocaleString()).fontSize(11).fontColor('#7A827B')
+                }.width('100%')
+                Row({ space: 8 }) {
+                  Button(this.confirmConvertId === note.flashId ? (this.lang === 1 ? '再次点击确认' : 'Tap again to confirm') :
+                    note.convertedTaskId ? (this.lang === 1 ? '已转为任务' : 'Converted') : (this.lang === 1 ? '转为任务' : 'Make task'))
+                    .layoutWeight(1).height(38).backgroundColor('#E4F1DA').fontColor('#25332C')
+                    .enabled(!note.convertedTaskId && !this.busy).onClick(async () => await this.convertFlash(note.flashId))
+                  Button(this.lang === 1 ? '稍后处理' : 'Later').height(38).backgroundColor('#F1F3EF').fontColor('#526259')
+                    .onClick(() => { this.confirmConvertId = ''; this.confirmArchiveId = ''; })
+                  Button(this.confirmArchiveId === note.flashId ? (this.lang === 1 ? '确认归档' : 'Confirm') : (this.lang === 1 ? '归档' : 'Archive'))
+                    .height(38).backgroundColor('#F1F3EF').fontColor('#526259')
+                    .onClick(async () => await this.archiveFlash(note.flashId))
+                }.width('100%')
+              }.width('100%').padding(14).backgroundColor('#FFFFFF').borderRadius(16)
+            }
+          }, (note: FlashNote) => note.flashId)
+        }.layoutWeight(1).edgeEffect(EdgeEffect.Spring).scrollBar(BarState.Auto)
       }
-      .width('100%')
-      .height('100%')
 
-      // Entrance: full-screen white disc shrinks to center ⚪
-      if (this.showIris) {
-        Stack({ alignContent: Alignment.Center }) {
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor(Color.Black)
-          Circle({ width: this.coverDiameter(), height: this.coverDiameter() })
-            .fill(Color.White)
-            .scale({ x: this.discScale, y: this.discScale })
-        }
-        .width('100%')
-        .height('100%')
-        .hitTestBehavior(HitTestMode.None)
-      }
+      Row({ space: 8 }) {
+        CompanionView({ placement: 'FOCUS', interactionState: this.flashNotes.length > 0 ? 'FLASH_SAVED' : 'IDLE', compact: true,
+          message: this.lang === 1 ? '先把闪念放在这里，准备好时再处理。' : 'Leave thoughts here until you are ready.' })
+        Text(this.lang === 1 ? '先把闪念放在这里，准备好时再处理。' : 'Leave thoughts here until you are ready.')
+          .layoutWeight(1).fontSize(12).fontColor('#66736A')
+      }.width('100%')
+      if (this.actionError.length > 0) Text(this.actionError).fontSize(13).fontColor('#A13C32').width('100%')
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(Color.Black)
-    .onAreaChange((_old: Area, area: Area) => {
-      const w = Number(area.width);
-      const h = Number(area.height);
-      if (!Number.isNaN(w) && w > 0) {
-        this.pageW = w;
-      }
-      if (!Number.isNaN(h) && h > 0) {
-        this.pageH = h;
-      }
-    })
+    .width('100%').height('100%').padding({ left: 20, right: 20, top: 18, bottom: 12 })
+    .backgroundColor('#FAF9F4')
   }
 }

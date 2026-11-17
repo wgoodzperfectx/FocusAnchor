@@ -4,6 +4,73 @@ export type HeartRateZone = 'low' | 'optimal' | 'high' | 'unknown';
 export type FocusLevel = 'green' | 'yellow' | 'orange' | 'red';
 
 export type StudyMethod = 'reading' | 'practice' | 'review' | 'discussion' | 'other';
+export type FocusStepStatus = 'ready' | 'in_progress' | 'paused' | 'completed';
+export type ActionStatus = 'ready' | 'in_progress' | 'completed';
+export type ActionGenerationSource = 'agent' | 'rule' | 'manual' | 'legacy';
+
+/** Canonical, versioned identity for the task's current first step. */
+export interface FocusAction {
+  taskId: string;
+  actionId: string;
+  text: string;
+  status: ActionStatus;
+  order: number;
+  updatedAt: number;
+  revision: number;
+  generationSource: ActionGenerationSource;
+  appliedEventIds?: string[];
+}
+
+export type ActionEventType = 'start' | 'resume' | 'pause' | 'complete' | 'change';
+export type ActionEventOrigin = 'phone' | 'card' | 'watch';
+
+export interface ActionEvent {
+  eventId: string;
+  taskId: string;
+  actionId: string;
+  baseRevision: number;
+  type: ActionEventType;
+  origin: ActionEventOrigin;
+  createdAt: number;
+}
+
+export interface ActionEventResult {
+  status: 'applied' | 'duplicate' | 'conflict' | 'missing' | 'needs_step' | 'session_only';
+  currentRevision?: number;
+}
+
+export interface FocusSession {
+  sessionId: string;
+  taskId: string;
+  actionId: string;
+  status: 'IDLE' | 'RUNNING' | 'PAUSED';
+  updatedAt: number;
+  appliedEventIds?: string[];
+}
+
+export interface FlashNote {
+  flashId: string;
+  content: string;
+  sourceDevice: 'watch' | 'phone';
+  createdAt: number;
+  syncStatus: 'pending' | 'synced';
+  convertedTaskId?: string;
+  archived?: boolean;
+}
+
+/** One user-confirmed action produced by the local guided workflow. */
+export interface FocusStep {
+  text: string;
+  status: FocusStepStatus;
+  updatedAt: number;
+  /** Optional only while loading tasks written before UX V2. */
+  taskId?: string;
+  actionId?: string;
+  order?: number;
+  revision?: number;
+  generationSource?: ActionGenerationSource;
+  appliedEventIds?: string[];
+}
 
 /** Language code: 0 = English, 1 = Chinese */
 export type AvatarPreset = 'anchor' | 'book' | 'leaf' | 'star' | 'wave' | 'moon';
@@ -27,6 +94,7 @@ export interface StudyTask {
   dueAt?: number;
   /** Xiaoyi advice text only (no thinking process) */
   insight?: string;
+  focusStep?: FocusStep;
 }
 
 /** Raise urgency by one level when within 24h of deadline (1=highest). */
@@ -50,6 +118,8 @@ export interface HeartRateSnapshot {
   zone: HeartRateZone;
   focusLevel: FocusLevel;
   message: string;
+  /** The current local stream generates sample BPM; it is not a sensor reading. */
+  isSimulated?: boolean;
 }
 
 export interface PrivacySettings {
@@ -57,6 +127,10 @@ export interface PrivacySettings {
   allowAnalytics: boolean;
   showAgeOnProfile: boolean;
   localEncryptionOnly: boolean;
+  /** User opt-in for the local FocusAnchor agent. */
+  consentFocusSupport?: boolean;
+  /** User opt-in for retaining distraction thoughts on-device. */
+  consentThoughtSandbox?: boolean;
 }
 
 export interface AppSettings {
@@ -90,7 +164,9 @@ export const DEFAULT_PRIVACY: PrivacySettings = {
   shareUsageData: false,
   allowAnalytics: false,
   showAgeOnProfile: false,
-  localEncryptionOnly: true
+  localEncryptionOnly: true,
+  consentFocusSupport: false,
+  consentThoughtSandbox: false
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {

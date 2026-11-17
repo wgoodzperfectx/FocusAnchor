@@ -127,6 +127,7 @@ export struct FloatBall {
         if (cmd.taskTitle.length > 0) {
           const task = this.appState.createBlankTask();
           task.title = cmd.taskTitle;
+          task.dueAt = undefined;
           await this.appState.addTask(task);
           promptAction.showToast({ message: `${this.tx('float_task_ok')}: ${cmd.taskTitle}` });
           this.onGoAddTask();

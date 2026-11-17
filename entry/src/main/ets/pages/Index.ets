@@ -1,9 +1,6 @@
 import { HomeTab, TasksTab } from './AppTabs';
 import { AppState } from '../services/AppState';
-import { avatarEmoji } from '../models/AppTypes';
-import { ReminderService } from '../services/ReminderService';
 import { t } from '../common/LocaleHelper';
-import { FloatBall } from '../components/FloatBall';
 
 @Entry
 @Component
@@ -11,7 +8,6 @@ struct Index {
   @State refreshToken: number = 0;
   @State currentIndex: number = 0;
   @State lang: number = 0;
-  @State clockText: string = '00:00:00';
   private appState: AppState = AppState.getInstance();
   private clockId: number = -1;
   private langWatchId: number = -1;
@@ -31,9 +27,7 @@ struct Index {
 
   aboutToAppear(): void {
     this.syncLangFromState();
-    this.clockText = ReminderService.getInstance().formatNow();
     this.clockId = setInterval(() => {
-      this.clockText = ReminderService.getInstance().formatNow();
       this.syncLangFromState();
     }, 1000);
     let ticks = 0;
@@ -60,7 +54,12 @@ struct Index {
 
   onPageShow(): void {
     this.syncLangFromState();
-    this.refreshToken++;
+    if (this.currentIndex === 2) this.currentIndex = 0;
+    this.appState.reloadTasksFromDisk().then(() => {
+      this.refreshToken++;
+    }).catch(() => {
+      this.refreshToken++;
+    });
   }
 
   private openFocus(): void {
@@ -73,53 +72,13 @@ struct Index {
     });
   }
 
-  private openAddTask(): void {
-    this.currentIndex = 1;
-    this.refreshToken++;
-  }
-
   build() {
-    Stack() {
-      Column() {
-        Row() {
-          Row({ space: 10 }) {
-            if ((this.appState.settings.avatarUri ?? '').length > 0) {
-              Image(this.appState.settings.avatarUri)
-                .width(28)
-                .height(28)
-                .borderRadius(14)
-                .objectFit(ImageFit.Cover)
-            } else {
-              Text(avatarEmoji(this.appState.settings.avatar ?? 'anchor'))
-                .fontSize(22)
-            }
-            Column({ space: 2 }) {
-              Text(this.tx('app_title'))
-                .fontSize(18)
-                .fontWeight(FontWeight.Bold)
-                .fontColor($r('app.color.text_primary'))
-              Text(`${this.tx('system_time')} ${this.clockText}`)
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-            }
-            .alignItems(HorizontalAlign.Start)
-          }
-
-          Blank()
-
-          Text('⚙')
-            .fontSize(24)
-            .fontColor($r('app.color.text_primary'))
-            .padding(8)
-            .onClick(() => this.openSettings())
-        }
-        .width('100%')
-        .padding({ left: 16, right: 12, top: 10, bottom: 8 })
-        .backgroundColor($r('app.color.surface'))
-
+    Column() {
         Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
           TabContent() {
-            HomeTab({ refreshToken: $refreshToken, lang: this.lang, clockText: this.clockText })
+            HomeTab({ refreshToken: $refreshToken, lang: this.lang,
+              onOpenTasks: () => { this.currentIndex = 1; this.refreshToken++; },
+              onOpenSettings: () => this.openSettings() })
           }
           .tabBar(this.tabBuilder(this.tx('tab_home'), 0))
 
@@ -127,29 +86,39 @@ struct Index {
             TasksTab({ refreshToken: $refreshToken, lang: this.lang })
           }
           .tabBar(this.tabBuilder(this.tx('tab_tasks'), 1))
+
+          TabContent() {
+            Column({ space: 16 }) {
+              Text(this.lang === 1 ? '闪念沙盒' : 'Flash sandbox')
+                .fontSize(24)
+                .fontColor($r('app.color.text_primary'))
+              Text(this.lang === 1 ? '记录闪念，准备好时再处理。' : 'Keep thoughts here until you are ready.')
+                .fontColor($r('app.color.text_secondary'))
+              Button(this.lang === 1 ? '打开闪念沙盒' : 'Open flash sandbox')
+                .onClick(() => this.openFocus())
+            }
+            .width('100%')
+            .height('100%')
+            .padding(24)
+            .backgroundColor('#FAF9F4')
+          }
+          .tabBar(this.tabBuilder(this.tx('btn_focus'), 2))
         }
         .layoutWeight(1)
         .onChange((index: number) => {
           this.currentIndex = index;
           this.syncLangFromState();
           this.refreshToken++;
+          if (index === 2) {
+            this.openFocus();
+          }
         })
-        .barBackgroundColor($r('app.color.surface'))
-        .backgroundColor($r('app.color.page_background'))
-      }
-      .width('100%')
-      .height('100%')
-
-      FloatBall({
-        lang: this.lang,
-        onGoFocus: () => this.openFocus(),
-        onGoSettings: () => this.openSettings(),
-        onGoAddTask: () => this.openAddTask()
-      })
+        .barBackgroundColor('#FFFFFF')
+        .backgroundColor('#FAF9F4')
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.page_background'))
+    .backgroundColor('#FAF9F4')
   }
 
   @Builder
@@ -157,7 +126,7 @@ struct Index {
     Column({ space: 4 }) {
       Text(`${label}`)
         .fontSize(12)
-        .fontColor(this.currentIndex === targetIndex ? Color.White : $r('app.color.text_secondary'))
+        .fontColor(this.currentIndex === targetIndex ? '#386A45' : '#66736A')
         .fontWeight(this.currentIndex === targetIndex ? FontWeight.Medium : FontWeight.Normal)
         .opacity(this.lang >= 0 ? 1 : 1)
     }
