@@ -1,0 +1,151 @@
+{
+  "input_sha256": "3a002186dc5cf78bc2130bfdd5660af5288f8c5a5687011ee2fe35073ae26d4d",
+  "seed": 1337,
+  "features": [
+    "hour_sin",
+    "hour_cos",
+    "is_weekend",
+    "notif_5m",
+    "notif_30m",
+    "app_5m",
+    "screen_5m",
+    "phone_30m",
+    "useract_5m",
+    "screen_on",
+    "screen_known",
+    "battery",
+    "battery_known",
+    "noise",
+    "noise_known",
+    "minutes_since_esm"
+  ],
+  "split": {
+    "train_users": 205,
+    "cal_users": 68,
+    "test_users": 69,
+    "train_rows": 67265,
+    "cal_rows": 22722,
+    "test_rows": 22611,
+    "disjoint": true
+  },
+  "models": {
+    "lr": {
+      "calibration_set": {
+        "raw": {
+          "rows": 22722,
+          "positive_rate": 0.2699586304022533,
+          "macro_f1": 0.617401531411233,
+          "balanced_accuracy": 0.6077296479421999,
+          "auroc": 0.7599214657709985,
+          "auprc": 0.5075557277094856,
+          "ece_10": 0.035052032127923155,
+          "brier": 0.16590032740180544,
+          "false_interruption_rate_proxy": 0.40452091767881243,
+          "false_positive_count": 1199,
+          "predicted_positive_count": 2964
+        },
+        "platt": {
+          "rows": 22722,
+          "positive_rate": 0.2699586304022533,
+          "macro_f1": 0.6097965847985166,
+          "balanced_accuracy": 0.6016492628381703,
+          "auroc": 0.7599214657709985,
+          "auprc": 0.5075557277094856,
+          "ece_10": 0.034459446618730995,
+          "brier": 0.16777146071661475,
+          "false_interruption_rate_proxy": 0.4047874240800286,
+          "false_positive_count": 1133,
+          "predicted_positive_count": 2799
+        }
+      },
+      "selected_probability_by_calibration_brier": "raw",
+      "raw": {
+        "rows": 22611,
+        "positive_rate": 0.3042324532307284,
+        "macro_f1": 0.6045841588432477,
+        "balanced_accuracy": 0.6015429175719025,
+        "auroc": 0.7606712477610974,
+        "auprc": 0.548803983993259,
+        "ece_10": 0.048133717635959854,
+        "brier": 0.1769173820894307,
+        "false_interruption_rate_proxy": 0.3791530944625407,
+        "false_positive_count": 1164,
+        "predicted_positive_count": 3070
+      },
+      "platt": {
+        "rows": 22611,
+        "positive_rate": 0.3042324532307284,
+        "macro_f1": 0.5993904518608486,
+        "balanced_accuracy": 0.5978075137533183,
+        "auroc": 0.7606712477610974,
+        "auprc": 0.548803983993259,
+        "ece_10": 0.05281229213176446,
+        "brier": 0.18073900231031753,
+        "false_interruption_rate_proxy": 0.37491432488005483,
+        "false_positive_count": 1094,
+        "predicted_positive_count": 2918
+      },
+      "model_sha256": "140101eedcdbb640903aca2fd8167468d6cb9a18382423ed1cf059b0bca782cf",
+      "prediction_sha256": "a515ead7da415f2436cd2620e5854049b3fb83765019a6faa33acd9608161544"
+    },
+    "xgb": {
+      "calibration_set": {
+        "raw": {
+          "rows": 22722,
+          "positive_rate": 0.2699586304022533,
+          "macro_f1": 0.6507880629869089,
+          "balanced_accuracy": 0.6358405642680403,
+          "auroc": 0.7853365701566234,
+          "auprc": 0.563169799821049,
+          "ece_10": 0.017988185303599025,
+          "brier": 0.15685640275478363,
+          "false_interruption_rate_proxy": 0.3656783468104223,
+          "false_positive_count": 1221,
+          "predicted_positive_count": 3339
+        },
+        "platt": {
+          "rows": 22722,
+          "positive_rate": 0.2699586304022533,
+          "macro_f1": 0.654211104293425,
+          "balanced_accuracy": 0.6392289113582527,
+          "auroc": 0.7853365701566234,
+          "auprc": 0.563169799821049,
+          "ece_10": 0.02842480842152107,
+          "brier": 0.1575063502489929,
+          "false_interruption_rate_proxy": 0.3734629682585073,
+          "false_positive_count": 1306,
+          "predicted_positive_count": 3497
+        }
+      },
+      "selected_probability_by_calibration_brier": "raw",
+      "raw": {
+        "rows": 22611,
+        "positive_rate": 0.3042324532307284,
+        "macro_f1": 0.6432496348299885,
+        "balanced_accuracy": 0.6329265302850217,
+        "auroc": 0.786510565269618,
+        "auprc": 0.5929772754898273,
+        "ece_10": 0.023291947283610268,
+        "brier": 0.16656436026096344,
+        "false_interruption_rate_proxy": 0.34782608695652173,
+        "false_positive_count": 1272,
+        "predicted_positive_count": 3657
+      },
+      "platt": {
+        "rows": 22611,
+        "positive_rate": 0.3042324532307284,
+        "macro_f1": 0.6471526384752699,
+        "balanced_accuracy": 0.6363438333472494,
+        "auroc": 0.786510565269618,
+        "auprc": 0.5929772754898273,
+        "ece_10": 0.05047046657618861,
+        "brier": 0.1693595031541523,
+        "false_interruption_rate_proxy": 0.3519494204425711,
+        "false_positive_count": 1336,
+        "predicted_positive_count": 3796
+      },
+      "model_sha256": "e094baf2ae2132140087778ce0d55d5388ef2c7cb13d1f61da90891b931c17bb",
+      "prediction_sha256": "23e64287590612ae6290d3f717e524354e162d27b874dc8c1299290ab525bb0a"
+    }
+  }
+}

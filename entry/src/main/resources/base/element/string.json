@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FocusAnchor entry module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "FocusAnchor main ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "FocusAnchor"
+    },
+    {
+      "name": "perm_vibrate_reason",
+      "value": "Vibrate when heart-rate alerts fire"
+    },
+    {
+      "name": "perm_album_reason",
+      "value": "Access album to set your profile avatar"
+    },
+    {
+      "name": "perm_mic_reason",
+      "value": "Capture voice input for study tasks via Xiaoyi"
+    },
+    {
+      "name": "perm_notify_reason",
+      "value": "Remind unfinished study tasks"
+    },
+    {
+      "name": "perm_sync_reason",
+      "value": "Sync tasks from phone to watch one-way"
+    }
+  ]
+}

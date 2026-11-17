@@ -1,0 +1,44 @@
+schema_version: "1.0"
+scope: "Local offline research and synthetic replay only; no production deployment"
+source_commit: "5e5d4854ab1fba0bde11440dc3980b67687a17fe"
+environment_lock: "requirements-modeling.lock.txt"
+python: "3.14.2"
+seed: 1337
+datasets:
+  wesad:
+    local_archive: "WESAD.zip"
+    sha256: "5e15d2606adf16d819ba535c1786d92e94bae5ff5392f7ae01fb63f9938fd71c"
+    access: "LOCAL_ARCHIVE_PRESENT"
+  mobile_phone_use:
+    local_archive: "mpud.zip"
+    sha256: "a8ec974a2c227c30611aea82c59cba85931b8fd73953a90547c9d724f5261179"
+    access: "USER_ATTESTED_ACCESS_LOCAL_RESEARCH"
+  nurse:
+    local_archive: "Stress_dataset.zip"
+    sha256: "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407"
+    survey_file: "SurveyResults.xlsx"
+    survey_sha256: "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3"
+    access: "LOCAL_ARCHIVE_PRESENT_OFFICIAL_HASH_MATCH"
+blocked_datasets:
+  k_emophone: "BLOCKED_ACCESS; approval required"
+optional_context_experiment:
+  name: "ExtraSensory OR_exercise user-holdout baseline"
+  archive_sha256: "412d307bdf54a60dff81a705c2f25833889a46dca64a184e3b588ad99c69cb56"
+  config: "experiments/extrasensory_activity.yaml"
+  command_preprocess: "python scripts/preprocess_extrasensory.py --archive <authorized-dataset-root>/ExtraSensory.per_uuid_features_labels.zip"
+  command_train: "python scripts/train_extrasensory_activity.py"
+  metrics: "reports/extrasensory_activity_metrics.json"
+  integration_status: "research only; high false-exercise rate at 0.5 threshold; not a G0 source"
+config: "experiments/m1_wesad_baseline.yaml"
+expected_outputs:
+  m1_model_window_combinations: 6
+  m1_metrics: "reports/m1_wesad_metrics.json"
+  m1_fold_predictions: "predictions/m1/*.parquet"
+  m1_calibration: "calibration/m1/*.json"
+  m2_metrics: "reports/m2_receptivity_metrics.json"
+  m2_predictions: "predictions/m2/*.parquet"
+  replay_fixtures: "service/replay_fixtures.json"
+  nurse_windows: "data/processed/nurse/windows.parquet"
+  nurse_window_counts: {30: 9248, 60: 4544, 120: 2189}
+  nurse_external_metrics: "reports/m1_nurse_external_{30,60,120}s.json"
+entry_command: "python scripts/reproduce_core.py --dataset-root <authorized-dataset-root>"

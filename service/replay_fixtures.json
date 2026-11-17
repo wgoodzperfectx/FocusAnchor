@@ -1,0 +1,118 @@
+[
+  {
+    "name": "wesad_aggregate_median_good",
+    "target": "/v1/m1/estimate",
+    "request": {
+      "schema_version": "0.1-replay",
+      "source": "replay",
+      "timestamp_ms": 0,
+      "window_seconds": 60,
+      "signal_quality": "good",
+      "features": {
+        "bvp_missing_rate": 0.0,
+        "bvp_mean": 0.0022265624999999807,
+        "bvp_std": 39.245734737396944,
+        "bvp_min": -225.29,
+        "bvp_max": 211.2,
+        "bvp_delta": -0.33000000000000096,
+        "bvp_anomaly_rate": 0.0,
+        "eda_missing_rate": 0.0,
+        "eda_mean": 0.8398441458333333,
+        "eda_std": 0.02004699791474356,
+        "eda_min": 0.761421,
+        "eda_max": 0.981462,
+        "eda_delta": -0.007674999999999987,
+        "eda_anomaly_rate": 0.0,
+        "temp_missing_rate": 0.0,
+        "temp_mean": 33.15691666666666,
+        "temp_std": 0.023093409353224816,
+        "temp_min": 33.09,
+        "temp_max": 33.21,
+        "temp_delta": -0.00999999999999801,
+        "temp_anomaly_rate": 0.0,
+        "acc_magnitude_g_missing_rate": 0.0,
+        "acc_magnitude_g_mean": 0.988468869975716,
+        "acc_magnitude_g_std": 0.026598144077586337,
+        "acc_magnitude_g_min": 0.7490228008879303,
+        "acc_magnitude_g_max": 1.2992260316242128,
+        "acc_magnitude_g_delta": 0.0,
+        "acc_missing_rate": 0.0,
+        "acc_anomaly_rate": 0.0
+      }
+    }
+  },
+  {
+    "name": "wesad_aggregate_median_bad_quality",
+    "target": "/v1/m1/estimate",
+    "request": {
+      "schema_version": "0.1-replay",
+      "source": "replay",
+      "timestamp_ms": 0,
+      "window_seconds": 60,
+      "signal_quality": "invalid",
+      "features": {
+        "bvp_missing_rate": 0.0,
+        "bvp_mean": 0.0022265624999999807,
+        "bvp_std": 39.245734737396944,
+        "bvp_min": -225.29,
+        "bvp_max": 211.2,
+        "bvp_delta": -0.33000000000000096,
+        "bvp_anomaly_rate": 0.0,
+        "eda_missing_rate": 0.0,
+        "eda_mean": 0.8398441458333333,
+        "eda_std": 0.02004699791474356,
+        "eda_min": 0.761421,
+        "eda_max": 0.981462,
+        "eda_delta": -0.007674999999999987,
+        "eda_anomaly_rate": 0.0,
+        "temp_missing_rate": 0.0,
+        "temp_mean": 33.15691666666666,
+        "temp_std": 0.023093409353224816,
+        "temp_min": 33.09,
+        "temp_max": 33.21,
+        "temp_delta": -0.00999999999999801,
+        "temp_anomaly_rate": 0.0,
+        "acc_magnitude_g_missing_rate": 0.0,
+        "acc_magnitude_g_mean": 0.988468869975716,
+        "acc_magnitude_g_std": 0.026598144077586337,
+        "acc_magnitude_g_min": 0.7490228008879303,
+        "acc_magnitude_g_max": 1.2992260316242128,
+        "acc_magnitude_g_delta": 0.0,
+        "acc_missing_rate": 0.0,
+        "acc_anomaly_rate": 0.0
+      }
+    }
+  },
+  {
+    "name": "mpud_aggregate_median_context",
+    "target": "/v1/m2/decision-candidate",
+    "request": {
+      "schema_version": "0.1-replay",
+      "source": "replay",
+      "timestamp_ms": 0,
+      "context_quality": "good",
+      "features": {
+        "hour_sin": -0.07845909572784526,
+        "hour_cos": -0.030538513209822475,
+        "is_weekend": 0.0,
+        "notif_5m": 0.0,
+        "notif_30m": 1.0,
+        "app_5m": 0.0,
+        "screen_5m": 0.0,
+        "phone_30m": 0.0,
+        "useract_5m": 0.0,
+        "screen_on": 0.0,
+        "screen_known": 1.0,
+        "battery": 66.0,
+        "battery_known": 1.0,
+        "noise": 73.8,
+        "noise_known": 1.0,
+        "minutes_since_esm": 88.50833333333333
+      },
+      "task_context": {
+        "task_status": "pending",
+        "user_requested_help": false
+      }
+    }
+  }
+]

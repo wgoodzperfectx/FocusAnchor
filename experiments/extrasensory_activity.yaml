@@ -1,0 +1,11 @@
+schema_version: "1.0"
+experiment: "extrasensory_exercise_context_user_holdout"
+input: "data/processed/extrasensory/activity.parquet"
+source_manifest: "data/processed/extrasensory/manifest.json"
+seed: 1337
+label: "label:OR_exercise"
+feature_prefixes: ["raw_acc:", "watch_acceleration:"]
+split: "60/20/20 among users with explicit exercise labels; unknown labels excluded"
+models: [logistic_regression, xgboost]
+threshold: 0.5
+purpose: "offline context evidence only; not a G0 activity source or benefit label"

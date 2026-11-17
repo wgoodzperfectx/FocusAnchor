@@ -1,0 +1,11 @@
+schema_version: "1.0"
+experiment: "mpud_esm_click_proxy_subject_holdout"
+input: "data/processed/mpud/receptivity.parquet"
+source_manifest: "data/processed/mpud/manifest.json"
+seed: 1337
+subject_split: "60% train, 20% calibration, 20% test by subject"
+models: [logistic_regression, xgboost]
+label: "ESM notification click within 10 minutes, not assistance benefit"
+threshold: 0.5
+ece_bins: 10
+replay_role: "offline candidate score only"

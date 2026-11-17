@@ -1,0 +1,336 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FocusAnchor Modeling Replay",
+    "description": "Research replay only. Responses are evidence/candidates; no Agent or device action.",
+    "version": "0.1-replay"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health V1 Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/m1/estimate": {
+      "post": {
+        "summary": "Estimate M1",
+        "operationId": "estimate_m1_v1_m1_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhysioWindow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Estimate M1 V1 M1 Estimate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/m2/decision-candidate": {
+      "post": {
+        "summary": "Estimate M2",
+        "operationId": "estimate_m2_v1_m2_decision_candidate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/M2CandidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Estimate M2 V1 M2 Decision Candidate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/replay/next": {
+      "get": {
+        "summary": "Replay Next",
+        "operationId": "replay_next_v1_replay_next_get",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Replay Next V1 Replay Next Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "M2CandidateRequest": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "0.1-replay",
+            "title": "Schema Version"
+          },
+          "source": {
+            "type": "string",
+            "const": "replay",
+            "title": "Source"
+          },
+          "timestamp_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Timestamp Ms"
+          },
+          "context_quality": {
+            "type": "string",
+            "enum": [
+              "good",
+              "degraded",
+              "invalid",
+              "unknown"
+            ],
+            "title": "Context Quality"
+          },
+          "features": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Features"
+          },
+          "task_context": {
+            "$ref": "#/components/schemas/TaskContext"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "source",
+          "timestamp_ms",
+          "context_quality",
+          "features",
+          "task_context"
+        ],
+        "title": "M2CandidateRequest"
+      },
+      "PhysioWindow": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "0.1-replay",
+            "title": "Schema Version"
+          },
+          "source": {
+            "type": "string",
+            "const": "replay",
+            "title": "Source"
+          },
+          "timestamp_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Timestamp Ms"
+          },
+          "window_seconds": {
+            "type": "integer",
+            "title": "Window Seconds"
+          },
+          "signal_quality": {
+            "type": "string",
+            "enum": [
+              "good",
+              "degraded",
+              "invalid",
+              "unknown"
+            ],
+            "title": "Signal Quality"
+          },
+          "features": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "source",
+          "timestamp_ms",
+          "window_seconds",
+          "signal_quality",
+          "features"
+        ],
+        "title": "PhysioWindow"
+      },
+      "TaskContext": {
+        "properties": {
+          "task_status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "active",
+              "paused"
+            ],
+            "title": "Task Status"
+          },
+          "user_requested_help": {
+            "type": "boolean",
+            "title": "User Requested Help",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "task_status"
+        ],
+        "title": "TaskContext"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "source_archive": "mpud.zip",
+  "counts": {
+    "users": 342,
+    "events": 31562291,
+    "esm": 114085,
+    "labeled": 113284,
+    "ambiguous": 801,
+    "bad_time": 0,
+    "out_of_order": 0,
+    "conflicting_esm_keys_excluded": 15,
+    "duplicate_esm_rows_removed": 656
+  },
+  "label": "ESM questionnaire notification clicked within 10 minutes; timeout without click is negative",
+  "feature_cutoff": "strictly before Esm_Posted; no ESM outcome or post-event sensor values",
+  "features": [
+    "hour_sin",
+    "hour_cos",
+    "is_weekend",
+    "notif_5m",
+    "notif_30m",
+    "app_5m",
+    "screen_5m",
+    "phone_30m",
+    "useract_5m",
+    "screen_on",
+    "screen_known",
+    "battery",
+    "battery_known",
+    "noise",
+    "noise_known",
+    "minutes_since_esm"
+  ],
+  "rows": 112598,
+  "positive": 32518
+}

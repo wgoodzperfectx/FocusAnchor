@@ -1,0 +1,44 @@
+{
+  "dataset": "nurse",
+  "window_seconds": 120,
+  "stride": "non_overlapping",
+  "source_archive_sha256": "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407",
+  "survey_sha256": "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3",
+  "label_definition": "survey 0=no stress, 1=medium, 2=high, na excluded; binary=1 for 1/2",
+  "time_reference": "unix_epoch_utc_from_e4_and_cst_survey",
+  "subjects": [
+    "15",
+    "5C",
+    "6B",
+    "6D",
+    "7A",
+    "7E",
+    "83",
+    "8B",
+    "94",
+    "BG",
+    "CE",
+    "DF",
+    "E4",
+    "EG",
+    "F5"
+  ],
+  "subject_count": 15,
+  "row_count": 2189,
+  "quality_counts": {
+    "good": 2189
+  },
+  "label_counts": {
+    "2": 1728,
+    "0": 331,
+    "1": 130
+  },
+  "exclusions": {
+    "no_survey_overlap": 473,
+    "overlapping_sessions": 136,
+    "conflicting_windows": 0,
+    "invalid_quality_windows": 0
+  },
+  "windows_path": "data\\processed\\nurse\\120s\\windows.parquet",
+  "windows_sha256": "65ee437148c5ce80f801c8e212717ed3042b69506ea15dcc8135a6b3922441b4"
+}

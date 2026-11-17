@@ -1,0 +1,196 @@
+{
+  "schema_version": "1.0",
+  "observed_at_utc": "2026-11-14T04:14:10.786027+00:00",
+  "dataset_root": "<LOCAL_PROJECT_ROOT>\\9_Dataset",
+  "datasets": {
+    "wesad": {
+      "archive_path": "<LOCAL_PROJECT_ROOT>\\9_Dataset\\WESAD.zip",
+      "archive_present": true,
+      "archive_bytes": 2249444501,
+      "sha256": "5e15d2606adf16d819ba535c1786d92e94bae5ff5392f7ae01fb63f9938fd71c",
+      "member_count": 92,
+      "subjects": [
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9",
+        "S10",
+        "S11",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17"
+      ],
+      "subject_count": 15,
+      "subject_files": {
+        "S2": [
+          "S2.pkl",
+          "S2_E4_Data.zip",
+          "S2_quest.csv",
+          "S2_readme.txt",
+          "S2_respiban.txt"
+        ],
+        "S3": [
+          "S3.pkl",
+          "S3_E4_Data.zip",
+          "S3_quest.csv",
+          "S3_readme.txt",
+          "S3_respiban.txt"
+        ],
+        "S4": [
+          "S4.pkl",
+          "S4_E4_Data.zip",
+          "S4_quest.csv",
+          "S4_readme.txt",
+          "S4_respiban.txt"
+        ],
+        "S5": [
+          "S5.pkl",
+          "S5_E4_Data.zip",
+          "S5_quest.csv",
+          "S5_readme.txt",
+          "S5_respiban.txt"
+        ],
+        "S6": [
+          "S6.pkl",
+          "S6_E4_Data.zip",
+          "S6_quest.csv",
+          "S6_readme.txt",
+          "S6_respiban.txt"
+        ],
+        "S7": [
+          "S7.pkl",
+          "S7_E4_Data.zip",
+          "S7_quest.csv",
+          "S7_readme.txt",
+          "S7_respiban.txt"
+        ],
+        "S8": [
+          "S8.pkl",
+          "S8_E4_Data.zip",
+          "S8_quest.csv",
+          "S8_readme.txt",
+          "S8_respiban.txt"
+        ],
+        "S9": [
+          "S9.pkl",
+          "S9_E4_Data.zip",
+          "S9_quest.csv",
+          "S9_readme.txt",
+          "S9_respiban.txt"
+        ],
+        "S10": [
+          "S10.pkl",
+          "S10_E4_Data.zip",
+          "S10_quest.csv",
+          "S10_readme.txt",
+          "S10_respiban.txt"
+        ],
+        "S11": [
+          "S11.pkl",
+          "S11_E4_Data.zip",
+          "S11_quest.csv",
+          "S11_readme.txt",
+          "S11_respiban.txt"
+        ],
+        "S13": [
+          "S13.pkl",
+          "S13_E4_Data.zip",
+          "S13_quest.csv",
+          "S13_readme.txt",
+          "S13_respiban.txt"
+        ],
+        "S14": [
+          "S14.pkl",
+          "S14_E4_Data.zip",
+          "S14_quest.csv",
+          "S14_readme.txt",
+          "S14_respiban.txt"
+        ],
+        "S15": [
+          "S15.pkl",
+          "S15_E4_Data.zip",
+          "S15_quest.csv",
+          "S15_readme.txt",
+          "S15_respiban.txt"
+        ],
+        "S16": [
+          "S16.pkl",
+          "S16_E4_Data.zip",
+          "S16_quest.csv",
+          "S16_readme.txt",
+          "S16_respiban.txt"
+        ],
+        "S17": [
+          "S17.pkl",
+          "S17_E4_Data.zip",
+          "S17_quest.csv",
+          "S17_readme.txt",
+          "S17_respiban.txt"
+        ]
+      },
+      "main_pickle_present": {
+        "S2": true,
+        "S3": true,
+        "S4": true,
+        "S5": true,
+        "S6": true,
+        "S7": true,
+        "S8": true,
+        "S9": true,
+        "S10": true,
+        "S11": true,
+        "S13": true,
+        "S14": true,
+        "S15": true,
+        "S16": true,
+        "S17": true
+      },
+      "declared_unpacked_bytes": 17578304666,
+      "encrypted_members": 0,
+      "unsafe_member_paths": [],
+      "crc_status": "PASS",
+      "bad_member": null,
+      "extracted_path": "<LOCAL_PROJECT_ROOT>\\9_Dataset\\WESAD\\WESAD",
+      "extracted_subject_dirs": [
+        "S10",
+        "S11"
+      ],
+      "status": "ARCHIVE_VERIFIED"
+    },
+    "nurse": {
+      "status": "FILES_OBSERVED",
+      "top_level_files": [
+        {
+          "path": "<LOCAL_PROJECT_ROOT>\\9_Dataset\\Stress_dataset.zip",
+          "bytes": 1156939542,
+          "sha256": "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407"
+        },
+        {
+          "path": "<LOCAL_PROJECT_ROOT>\\9_Dataset\\SurveyResults.xlsx",
+          "bytes": 49048,
+          "sha256": "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3"
+        }
+      ]
+    },
+    "mobile_phone_use": {
+      "status": "FILES_OBSERVED",
+      "top_level_files": [
+        {
+          "path": "<LOCAL_PROJECT_ROOT>\\9_Dataset\\mpud.zip",
+          "bytes": 310938979,
+          "sha256": "a8ec974a2c227c30611aea82c59cba85931b8fd73953a90547c9d724f5261179"
+        }
+      ]
+    },
+    "k_emophone": {
+      "status": "NOT_OBSERVED",
+      "top_level_files": []
+    }
+  }
+}

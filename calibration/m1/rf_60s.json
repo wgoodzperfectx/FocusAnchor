@@ -1,0 +1,368 @@
+{
+  "model": "rf",
+  "window_seconds": 60,
+  "calibration_subjects_per_fold": 3,
+  "platt_logistic_c": 10000,
+  "folds": [
+    {
+      "test_subject": "S2",
+      "train_subjects": [
+        "S10",
+        "S13",
+        "S15",
+        "S16",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S11",
+        "S14",
+        "S17"
+      ],
+      "platt_coefficient": 0.2535583241408993,
+      "platt_intercept": -0.5653001340869835,
+      "isotonic_threshold_count": 10
+    },
+    {
+      "test_subject": "S3",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S16",
+        "S2",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S14",
+        "S15",
+        "S17"
+      ],
+      "platt_coefficient": 0.3673447526486899,
+      "platt_intercept": -0.3536484598921084,
+      "isotonic_threshold_count": 14
+    },
+    {
+      "test_subject": "S4",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S14",
+        "S15",
+        "S16",
+        "S2",
+        "S3",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S13",
+        "S17",
+        "S5"
+      ],
+      "platt_coefficient": 1.3878417733121093,
+      "platt_intercept": -0.8069154050005013,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S5",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S14",
+        "S16",
+        "S2",
+        "S3",
+        "S4",
+        "S6",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S15",
+        "S17",
+        "S7"
+      ],
+      "platt_coefficient": 1.4847705747019566,
+      "platt_intercept": -1.7531865929620531,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S6",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S14",
+        "S16",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S7",
+        "S8"
+      ],
+      "calibration_subjects": [
+        "S15",
+        "S17",
+        "S9"
+      ],
+      "platt_coefficient": 2.021533117392217,
+      "platt_intercept": -0.5101324393062028,
+      "isotonic_threshold_count": 10
+    },
+    {
+      "test_subject": "S7",
+      "train_subjects": [
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S10",
+        "S11",
+        "S13"
+      ],
+      "platt_coefficient": 2.575177679657956,
+      "platt_intercept": -1.5510585671320865,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S8",
+      "train_subjects": [
+        "S11",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S2",
+        "S3",
+        "S4",
+        "S6",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S10",
+        "S5",
+        "S7"
+      ],
+      "platt_coefficient": 2.021014672996686,
+      "platt_intercept": -0.5976381594203526,
+      "isotonic_threshold_count": 14
+    },
+    {
+      "test_subject": "S9",
+      "train_subjects": [
+        "S13",
+        "S15",
+        "S16",
+        "S17",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8"
+      ],
+      "calibration_subjects": [
+        "S10",
+        "S11",
+        "S14"
+      ],
+      "platt_coefficient": 0.5374248354190044,
+      "platt_intercept": 0.20607203920575815,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S10",
+      "train_subjects": [
+        "S11",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S2",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S17",
+        "S3",
+        "S8"
+      ],
+      "platt_coefficient": 1.2753549643167321,
+      "platt_intercept": -1.211457568016161,
+      "isotonic_threshold_count": 14
+    },
+    {
+      "test_subject": "S11",
+      "train_subjects": [
+        "S10",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S2",
+        "S3",
+        "S4",
+        "S6",
+        "S7",
+        "S8"
+      ],
+      "calibration_subjects": [
+        "S17",
+        "S5",
+        "S9"
+      ],
+      "platt_coefficient": 1.5555800468390983,
+      "platt_intercept": -0.5683303701460766,
+      "isotonic_threshold_count": 10
+    },
+    {
+      "test_subject": "S13",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S3",
+        "S4",
+        "S6",
+        "S7",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S2",
+        "S5",
+        "S8"
+      ],
+      "platt_coefficient": 2.7508695620697585,
+      "platt_intercept": 3.288842949359058,
+      "isotonic_threshold_count": 10
+    },
+    {
+      "test_subject": "S14",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S15",
+        "S16",
+        "S17",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S8"
+      ],
+      "calibration_subjects": [
+        "S2",
+        "S7",
+        "S9"
+      ],
+      "platt_coefficient": 0.9200389619004972,
+      "platt_intercept": 0.09571211743139126,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S15",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S14",
+        "S16",
+        "S2",
+        "S3",
+        "S5",
+        "S6",
+        "S7",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S17",
+        "S4",
+        "S8"
+      ],
+      "platt_coefficient": 1.5217485350365931,
+      "platt_intercept": -0.6526295309756928,
+      "isotonic_threshold_count": 12
+    },
+    {
+      "test_subject": "S16",
+      "train_subjects": [
+        "S13",
+        "S14",
+        "S15",
+        "S17",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "calibration_subjects": [
+        "S10",
+        "S11",
+        "S2"
+      ],
+      "platt_coefficient": 1.5955854954967796,
+      "platt_intercept": 0.8071534269479193,
+      "isotonic_threshold_count": 14
+    },
+    {
+      "test_subject": "S17",
+      "train_subjects": [
+        "S10",
+        "S11",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S3",
+        "S4",
+        "S6",
+        "S7",
+        "S8"
+      ],
+      "calibration_subjects": [
+        "S2",
+        "S5",
+        "S9"
+      ],
+      "platt_coefficient": 3.582303091497649,
+      "platt_intercept": 4.481304686558254,
+      "isotonic_threshold_count": 8
+    }
+  ]
+}

@@ -1,0 +1,241 @@
+{
+  "protocol": "WESAD RF 120s frozen 15-fold ensemble; raw/Platt/isotonic calibrated on WESAD only; 0.5 threshold and 0.1 abstain margin; no NURSE training or tuning",
+  "scope": "only validated survey event intervals; selection bias; not continuous stress detection",
+  "timezone": "survey local CST +06:00 to UTC per source paper; DST ambiguity retained as limitation",
+  "label_mapping": "NURSE 0=no stress, 1=medium, 2=high; binary positive=1/2",
+  "archive_sha256": "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407",
+  "survey_sha256": "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3",
+  "model_sha256": {
+    "S10.joblib": "a2c7dfd12aa90143ab3868ad213741f4f24a4735ac3352a4fd80b5e9b4301d86",
+    "S11.joblib": "3ba6877c18a0a957014a25c1b52c58573240f80464721ae1ac3a0c1fcb6fb118",
+    "S13.joblib": "2d25e6b31a646e674f956c775fd84663a7c9eca749bed01e1a35724fe992d935",
+    "S14.joblib": "dd2e3dcafecba94b0395efb8e60c69a374772d234731aec8dabea11428a42381",
+    "S15.joblib": "d2749bf042ecef387f33b33813e9f7218a88aeb4bbbfd2fb1b5cf4658371ec7a",
+    "S16.joblib": "a00b96887c3a0d81cc99233fa50ffb93bd4d50f3fe0c6cd8da0a0c698b2262c6",
+    "S17.joblib": "d8f323297bf81f03b38939352454f79d12fc6f5a375f1ff68778c84f9a9ed846",
+    "S2.joblib": "25ccb8cf6ff90353615ebd4844fe24661b8c415d8d16b12d63467a13e06f679c",
+    "S3.joblib": "06a972113ae3e8ed60b182d06eebe924702818624c6fb83db0d3877ab5c76417",
+    "S4.joblib": "81b1f9e8e1d9a3eb7247c8932ec5fae790fb078e57a50c8bc531f2d39d416cc9",
+    "S5.joblib": "03b6ec7815b17f6dfadbd88d2674fcc551cf572fdf6a7ae386ff09c31d0b075b",
+    "S6.joblib": "ab4a5801f30cc850557e7d3a091cfc49ca052280094d147456ea1c8892a35249",
+    "S7.joblib": "ffd32def513f719f8ac044b054e003c78536e205918e16af9709a513fae09aeb",
+    "S8.joblib": "9c80f4cc83ef32ad3ece25a4955f143a99fa9e6221e566e810278f0ce154b5f8",
+    "S9.joblib": "629567710f32958eb95cbca057d112a66224b60ccae0007834d38c80a3b25f09"
+  },
+  "sessions_in_archive": 609,
+  "survey_counts": {
+    "nonblank_id": 358,
+    "label_1": 20,
+    "label_2": 179,
+    "unvalidated_label": 113,
+    "label_0": 46
+  },
+  "exclusions": {
+    "no_survey_overlap": 473,
+    "overlapping_sessions": 136,
+    "conflicting_windows": 0,
+    "invalid_quality_windows": 0
+  },
+  "quality_counts": {
+    "good": 2189
+  },
+  "label_counts": {
+    "2": 1728,
+    "0": 331,
+    "1": 130
+  },
+  "metrics": {
+    "raw": {
+      "n": 2189,
+      "subjects": 15,
+      "positive_n": 1858,
+      "negative_n": 331,
+      "macro_f1": 0.33872025653556653,
+      "balanced_accuracy": 0.5292472495845515,
+      "auroc": 0.5281317988025978,
+      "auprc": 0.874584870766428,
+      "ece": 0.47567670185296745,
+      "brier": 0.40133223320934,
+      "confusion_tn_fp_fn_tp": [
+        262,
+        69,
+        1362,
+        496
+      ],
+      "abstain_margin": 0.1,
+      "abstain_rate": 0.20785746916400183,
+      "retained_n": 1734,
+      "retained_balanced_accuracy": 0.5448369227711951
+    },
+    "platt": {
+      "n": 2189,
+      "subjects": 15,
+      "positive_n": 1858,
+      "negative_n": 331,
+      "macro_f1": 0.3264766953033498,
+      "balanced_accuracy": 0.526843176725778,
+      "auroc": 0.533985476375533,
+      "auprc": 0.8749677011131958,
+      "ece": 0.504016551757956,
+      "brier": 0.44292989840946695,
+      "confusion_tn_fp_fn_tp": [
+        267,
+        64,
+        1399,
+        459
+      ],
+      "abstain_margin": 0.1,
+      "abstain_rate": 0.13796253997259023,
+      "retained_n": 1887,
+      "retained_balanced_accuracy": 0.5421118619379938
+    },
+    "isotonic": {
+      "n": 2189,
+      "subjects": 15,
+      "positive_n": 1858,
+      "negative_n": 331,
+      "macro_f1": 0.314696533459314,
+      "balanced_accuracy": 0.5380952458381978,
+      "auroc": 0.536324508372385,
+      "auprc": 0.8756536505223085,
+      "ece": 0.5189697433813755,
+      "brier": 0.45701112449824216,
+      "confusion_tn_fp_fn_tp": [
+        283,
+        48,
+        1447,
+        411
+      ],
+      "abstain_margin": 0.1,
+      "abstain_rate": 0.07400639561443581,
+      "retained_n": 2027,
+      "retained_balanced_accuracy": 0.5427093879657753
+    }
+  },
+  "per_subject": [
+    {
+      "subject_id": "15",
+      "n": 16,
+      "positive_n": 14,
+      "predicted_positive_n": 10,
+      "auroc": 0.6785714285714286,
+      "balanced_accuracy": 0.5714285714285714
+    },
+    {
+      "subject_id": "5C",
+      "n": 181,
+      "positive_n": 130,
+      "predicted_positive_n": 11,
+      "auroc": 0.3826546003016591,
+      "balanced_accuracy": 0.4604072398190045
+    },
+    {
+      "subject_id": "6B",
+      "n": 126,
+      "positive_n": 120,
+      "predicted_positive_n": 113,
+      "auroc": 0.9402777777777777,
+      "balanced_accuracy": 0.7958333333333334
+    },
+    {
+      "subject_id": "6D",
+      "n": 124,
+      "positive_n": 22,
+      "predicted_positive_n": 11,
+      "auroc": 0.49955436720142604,
+      "balanced_accuracy": 0.5013368983957219
+    },
+    {
+      "subject_id": "7A",
+      "n": 241,
+      "positive_n": 231,
+      "predicted_positive_n": 106,
+      "auroc": 0.42640692640692646,
+      "balanced_accuracy": 0.41645021645021646
+    },
+    {
+      "subject_id": "7E",
+      "n": 51,
+      "positive_n": 25,
+      "predicted_positive_n": 11,
+      "auroc": 0.2076923076923077,
+      "balanced_accuracy": 0.28846153846153844
+    },
+    {
+      "subject_id": "83",
+      "n": 340,
+      "positive_n": 301,
+      "predicted_positive_n": 97,
+      "auroc": 0.645284947610529,
+      "balanced_accuracy": 0.5742397137745975
+    },
+    {
+      "subject_id": "8B",
+      "n": 44,
+      "positive_n": 33,
+      "predicted_positive_n": 21,
+      "auroc": 0.6914600550964187,
+      "balanced_accuracy": 0.6363636363636364
+    },
+    {
+      "subject_id": "94",
+      "n": 69,
+      "positive_n": 36,
+      "predicted_positive_n": 21,
+      "auroc": 0.7845117845117845,
+      "balanced_accuracy": 0.6174242424242424
+    },
+    {
+      "subject_id": "BG",
+      "n": 141,
+      "positive_n": 138,
+      "predicted_positive_n": 56,
+      "auroc": 0.11352657004830918,
+      "balanced_accuracy": 0.19202898550724637
+    },
+    {
+      "subject_id": "CE",
+      "n": 160,
+      "positive_n": 160,
+      "predicted_positive_n": 2,
+      "auroc": null,
+      "balanced_accuracy": null
+    },
+    {
+      "subject_id": "DF",
+      "n": 210,
+      "positive_n": 195,
+      "predicted_positive_n": 1,
+      "auroc": 0.5658119658119658,
+      "balanced_accuracy": 0.5025641025641026
+    },
+    {
+      "subject_id": "E4",
+      "n": 277,
+      "positive_n": 244,
+      "predicted_positive_n": 71,
+      "auroc": 0.3493541977148535,
+      "balanced_accuracy": 0.37028067560854444
+    },
+    {
+      "subject_id": "EG",
+      "n": 140,
+      "positive_n": 140,
+      "predicted_positive_n": 21,
+      "auroc": null,
+      "balanced_accuracy": null
+    },
+    {
+      "subject_id": "F5",
+      "n": 69,
+      "positive_n": 69,
+      "predicted_positive_n": 13,
+      "auroc": null,
+      "balanced_accuracy": null
+    }
+  ],
+  "windows_path": "data\\processed\\nurse\\120s\\windows.parquet",
+  "windows_sha256": "65ee437148c5ce80f801c8e212717ed3042b69506ea15dcc8135a6b3922441b4",
+  "predictions_path": "data\\processed\\nurse\\120s\\external_predictions.parquet",
+  "predictions_sha256": "2bc8a6382ee5ba0c1d25d6b59152189247b2c36de3ad87821fb462e41d2bc7c9"
+}

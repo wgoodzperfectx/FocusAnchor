@@ -1,0 +1,29 @@
+{
+  "dataset": "nurse",
+  "window_seconds": [
+    30,
+    60,
+    120
+  ],
+  "source_archive_sha256": "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407",
+  "survey_sha256": "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3",
+  "time_reference": "unix_epoch_utc_from_e4_and_cst_survey",
+  "label_definition": "survey 0=no stress, 1=medium, 2=high, na excluded; binary=1 for 1/2",
+  "subject_count": 15,
+  "row_count": 15981,
+  "window_counts": {
+    "30": 9248,
+    "60": 4544,
+    "120": 2189
+  },
+  "quality_counts": {
+    "good": 15981
+  },
+  "label_counts": {
+    "2": 12585,
+    "0": 2427,
+    "1": 969
+  },
+  "output_parquet": "data\\processed\\nurse\\windows.parquet",
+  "output_sha256": "af933b9ea514e84b0ceaef1753944cdc38d23b0ff038d76947ad1e9036ec1f75"
+}

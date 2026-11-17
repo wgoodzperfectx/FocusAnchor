@@ -1,0 +1,141 @@
+schema_version: "1.0"
+reviewed_at: "2026-11-12"
+dataset_root: "<LOCAL_PROJECT_ROOT>/9_Dataset"
+datasets:
+  wesad:
+    title: "Wearable Stress and Affect Detection"
+    official_url: "https://ubi29.informatik.uni-siegen.de/usi/data_wesad.html"
+    license_or_terms: "Scientific non-commercial use with attribution, per official WESAD page."
+    access_status: "LOCAL_ARCHIVE_PRESENT"
+    expected_participants: 15
+    modalities: [wrist_bvp, wrist_eda, wrist_temperature, wrist_acc, chest_ecg, chest_eda, chest_emg, chest_respiration, chest_temperature, chest_acc]
+    expected_archive_bytes: null
+    local_archive: "WESAD.zip"
+    observed_archive_bytes: 2249444501
+    declared_unpacked_bytes: 17578304666
+    downloaded_at_utc: null # Exact download time was not recorded; do not infer it from file metadata.
+    first_inventory_at_utc: "2026-10-31T14:16:44.897416+00:00"
+    observed_sha256: "5e15d2606adf16d819ba535c1786d92e94bae5ff5392f7ae01fb63f9938fd71c"
+    official_sha256: null
+    validation_status: "CRC_PASS_15_SUBJECTS"
+    preprocessing_status: "PASS_15_SUBJECTS_1824_WINDOWS_30_60_120S"
+    internal_experiment_status: "PASS_RF_XGBOOST_90_LOSO_FOLDS"
+    blocker: "No official checksum comparison was found; NURSE external validation and live-device signal mapping remain unverified."
+    next_check: "Verify official archive provenance if a checksum becomes available; perform NURSE zero-shot evaluation only after authorized download and label mapping."
+  nurse:
+    title: "A multi-modal sensor dataset for continuous stress detection of nurses in a hospital"
+    official_url: "https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f"
+    license_or_terms: "Dryad data are published under CC0; cite dataset DOI."
+    access_status: "LOCAL_ARCHIVE_PRESENT_OFFICIAL_HASH_MATCH"
+    expected_participants: 15
+    modalities: [eda, hr, temperature, ibi, bvp, acc, survey]
+    expected_archive_bytes: 1156939542
+    official_sha256: "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407"
+    local_archive: "Stress_dataset.zip"
+    survey_file: "SurveyResults.xlsx"
+    observed_archive_bytes: 1156939542
+    observed_sha256: "86e7146cbb124f9b5e37bc5bd8fa63f8786379dfdb10dfc9fdc5fd6c41e63407"
+    survey_sha256: "4ee7733f8e8da362af33a765c495f4a5ed8302b5af39327c2cdb420a27def2b3"
+    download_mirror: "https://zenodo.org/records/5514277"
+    validation_status: "OFFICIAL_ARCHIVE_SHA256_MATCH_SURVEY_SHA256_RECORDED"
+    preprocessing_status: "PASS_VALIDATED_EVENT_WINDOWS_30_60_120S_ONLY"
+    external_experiment_status: "RUN_RF_ZERO_SHOT_GENERALIZATION_FAIL"
+    blocker: "External labels cover selected survey events, not continuous negatives; timezone and session overlap require an audited mapping."
+    next_check: "Run frozen WESAD model on validated NURSE survey intervals; report selection bias and signal quality."
+  mobile_phone_use:
+    title: "Mobile Phone Use Dataset"
+    official_url: "https://sites.google.com/view/mobile-phone-use-dataset"
+    archive_reference: "https://crawdad.org/telefonica/mobilephoneuse/"
+    license_or_terms: "User confirmed mpud.zip came from the author's linked Google Drive and that the use agreement was accepted. Exact agreement text is not archived locally; use is limited to local research, with no raw-data redistribution."
+    access_status: "USER_ATTESTED_ACCESS_LOCAL_RESEARCH"
+    expected_participants: 342
+    modalities: [phone_events, notifications, app_use, ambient_context, emotion_esm, traits_subset]
+    expected_archive_bytes: null
+    official_sha256: null
+    local_archive: "mpud.zip"
+    observed_archive_bytes: 310938979
+    declared_unpacked_bytes: 4490368035
+    downloaded_at_utc: null # User confirmed source and agreement, not the download timestamp.
+    first_inventory_at_utc: "2026-10-31T14:16:44.897416+00:00"
+    observed_sha256: "a8ec974a2c227c30611aea82c59cba85931b8fd73953a90547c9d724f5261179"
+    validation_status: "CRC_PASS_342_USER_CSVS"
+    preprocessing_status: "PASS_112598_LABELED_NOTIFICATIONS"
+    internal_experiment_status: "PASS_LR_XGBOOST_205_68_69_USER_SPLIT"
+    blocker: "Exact Google Drive agreement text is not archived locally; redistribution and downstream use beyond local research remain unverified."
+    next_check: "Human: retain agreement text for future distribution or deployment review. Codex: seek actual user interruption/outcome labels before interpreting the click proxy as benefit."
+  k_emophone:
+    title: "K-EmoPhone"
+    official_url: "https://zenodo.org/records/7606611"
+    license_or_terms: "Restricted; Zenodo access request plus separate user agreement required."
+    access_status: "BLOCKED_ACCESS"
+    expected_participants: 77
+    modalities: [wearable_physiology, phone_context, interaction_logs, emotion_stress_attention_disturbance_esm]
+    expected_archive_bytes: null
+    official_sha256: null
+    local_archive: null
+    observed_archive_bytes: null
+    observed_sha256: null
+    blocker: "No approved access or local archive."
+    next_check: "Human: submit Zenodo request and user agreement using eligible credentials; Codex: inspect only after access is approved."
+  globem:
+    title: "GLOBEM multi-year behavior dataset"
+    official_url: "https://physionet.org/content/globem/1.1/"
+    license_or_terms: "PhysioNet credentialed access; authorization required."
+    access_status: "BLOCKED_ACCESS"
+    local_archive: null
+    blocker: "User reports access is restricted; official PhysioNet record labels the dataset Credentialed Access."
+    next_check: "Human: obtain required access through PhysioNet if this dataset is later prioritized."
+  swell_kaggle:
+    title: "Kaggle SWELL/HRV archive; exact dataset identity pending"
+    official_url: "https://www.kaggle.com/datasets/qiriro/swell-heart-rate-variability-hrv"
+    license_or_terms: "Likely Kaggle qiriro SWELL HRV derivative, whose page lists CC0. Exact local package-to-page provenance remains unconfirmed."
+    access_status: "NEEDS_PROVENANCE_REVIEW"
+    local_archive: "swell.zip"
+    archive_bytes: 244086382
+    declared_unpacked_bytes: 569716206
+    member_count: 60
+    observed_sha256: "4b9b932d323115f10a5d3163c0305fe189ae56ffe35b6516aa71248a5b3033b8"
+    validation_status: "CRC_PASS"
+    blocker: "Archive hrv dataset/ tree matches the Kaggle derivative description, but user cannot recover the download URL; this is not the full original SWELL-KW archive."
+    next_check: "Verify Kaggle package version and exact contents against the page before using as a SWELL-KW baseline; never report this as full original SWELL-KW."
+  clas:
+    title: "CLAS archive"
+    official_url: "https://snlab.site123.me/clas"
+    license_or_terms: "Full CLAS requires signed EULA and dataset password from the authors."
+    access_status: "BLOCKED_ACCESS"
+    local_archive: "CLAS.zip"
+    archive_bytes: 2267998353
+    declared_unpacked_bytes: 2273694933
+    member_count: 1
+    observed_sha256: "c413acc465a8e40ae63327ac2e632708996a01f0f0e3a3c27fc82aa588c2bd94"
+    validation_status: "CRC_PASS_OUTER_ZIP_ONLY"
+    blocker: "User cannot recover source record or EULA acceptance; only outer ZIP CRC was checked. Do not open/process inner CLAS_DATASET.zip without verified authorization."
+    next_check: "Human: verify signed EULA and author-issued access for this copy; Codex may inspect inner archive only after that confirmation."
+  studentlife:
+    title: "StudentLife archive"
+    official_url: "https://studentlife.cs.dartmouth.edu/"
+    license_or_terms: "Download source and terms pending review."
+    access_status: "NEEDS_SOURCE_REVIEW"
+    local_archive: "StudentLife.zip"
+    archive_bytes: 409018590
+    declared_unpacked_bytes: 3042012275
+    member_count: 1984
+    observed_sha256: "49c95374a00292657fb42b0dcba5455a3c9fd71b827eff41fbf5a2a45573861e"
+    validation_status: "CRC_PASS"
+    blocker: "Source, license and suitability for current M1/M2 labels not yet verified."
+    next_check: "Match user-provided source and terms before any event-level preprocessing."
+  extrasensory:
+    title: "ExtraSensory per-UUID features and labels archive"
+    official_url: "https://extrasensory.ucsd.edu/"
+    license_or_terms: "Official UCSD page invites free use conditioned on citation of original paper."
+    access_status: "LOCAL_PUBLIC_RESEARCH"
+    local_archive: "ExtraSensory.per_uuid_features_labels.zip"
+    archive_bytes: 225374973
+    declared_unpacked_bytes: 225325871
+    member_count: 60
+    observed_sha256: "412d307bdf54a60dff81a705c2f25833889a46dca64a184e3b588ad99c69cb56"
+    validation_status: "CRC_PASS"
+    preprocessing_status: "PASS_377346_ROWS_60_USERS_ACTIVITY_QUALITY_CHECK"
+    internal_experiment_status: "PASS_OFFLINE_26_9_9_USER_SPLIT_LR_XGB_NOT_FOR_G0"
+    blocker: "Local archive structure matches official 60-user feature/label ZIP, but source download URL is not preserved; labels cover behavior, not direct need or stress."
+    next_check: "Use only for separately labeled context/activity research after defining a non-leaking subject split; do not reinterpret behavior labels as intervention benefit."
