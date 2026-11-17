@@ -1,0 +1,9 @@
+{
+  "name": "wear",
+  "version": "1.0.0",
+  "description": "FocusAnchor watch read-only task sync",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

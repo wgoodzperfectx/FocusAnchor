@@ -1,0 +1,48 @@
+{
+  "module": {
+    "name": "wear",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "WearAbility",
+    "deviceTypes": [
+      "wearable"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.DISTRIBUTED_DATASYNC",
+        "reason": "$string:perm_sync_reason",
+        "usedScene": {
+          "abilities": [
+            "WearAbility"
+          ],
+          "when": "inuse"
+        }
+      }
+    ],
+    "abilities": [
+      {
+        "name": "WearAbility",
+        "srcEntry": "./ets/entryability/WearAbility.ets",
+        "description": "$string:WearAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:WearAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
