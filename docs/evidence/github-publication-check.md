@@ -2,6 +2,10 @@
 
 **状态：BLOCKED。** 当前 `origin` 为 Gitee `master`，未配置 GitHub Remote，也未核验 GitHub 仓库地址、可见性或默认分支。未创建仓库、Push、Release 或更改远端。
 
+**2026-11-17 当前状态更新：** GitHub 目标为 `https://github.com/wgoodzperfectx/FocusAnchor`，`github` Remote 已配置，Gitee `origin` 保留。项目负责人明确要求继续使用 Public 仓库；API 复核 `private=false`，默认分支为 `main`，当前远端仅有初始 README 提交。下方较早的“未配置 Remote / 私有仓库待确认”记载是历史快照，以本段为准。
+
+**公开素材确认与本轮复核：**项目负责人已明确确认 42 个图片/录屏素材可公开发布，且画面无个人或敏感信息。本轮 `publication_scan.py` 对集成树 127 个已跟踪文件扫描：敏感扩展名 0、数据/模型扩展名 0、超过 10 MB 文件 0、常见秘密模式命中 0；该扫描不覆盖压缩包内部或未识别秘密。46 个本地可达提交的敏感扩展名路径扫描为 0；秘密标记扫描仅命中扫描脚本自身的检测表达式，非凭据。本轮 Node 19/19、手表素材校验 9 项通过；ArkTS 构建、平台 Replay 和设备安装未在本轮执行。
+
 | 检查 | 结果 |
 |---|---|
 | README / Demo | 已新增产品 README、本地 Demo 和能力矩阵；README 检测器可按提交差异提示复核 |

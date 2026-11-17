@@ -40,8 +40,8 @@ python tests/test_wear_v33_assets.py
 
 ## License 与 Credits
 
-仓库当前有 [GPL-2.0 LICENSE](LICENSE)。公开发布前须核对原有代码、第三方图片/录屏、知识与数据的权利和许可；见[发布检查](docs/evidence/github-publication-check.md)。当前 Git Remote 仅指向 Gitee，尚无 GitHub Remote。
+仓库当前有 [GPL-2.0 LICENSE](LICENSE)。公开发布前须核对原有代码、第三方图片/录屏、知识与数据的权利和许可；见[发布检查](docs/evidence/github-publication-check.md)。本地保留 Gitee `origin`，并配置 GitHub `github` remote。
 
 ## 协作
 
-私有 GitHub 仓库 URL 尚待确认。队友取得仓库访问权后，克隆仓库、检出集成或专题分支，按[贡献指南](CONTRIBUTING.md)创建独立 worktree、运行测试并提交 PR；[PR 模板](.github/pull_request_template.md)要求列出契约影响、验证和未完成项。
+[GitHub 仓库](https://github.com/wgoodzperfectx/FocusAnchor)目前为 Public。队友克隆后先查看实际已发布的分支，按[贡献指南](CONTRIBUTING.md)创建独立 worktree、运行测试并提交 PR；[PR 模板](.github/pull_request_template.md)要求列出契约影响、验证和未完成项。本地候选分支不等于已发布分支。

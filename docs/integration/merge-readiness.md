@@ -13,4 +13,4 @@
 | Modeling | EXPERIMENTAL | 研究资产可独立分享；WESAD→NURSE 泛化 FAIL，不进入生产主动触达 |
 | Modeling Portability Check | ARCHIVE CANDIDATE | detached HEAD 已有恢复分支，8 个未提交文件已备份；先分类再提交 |
 
-GitHub Remote 尚未配置；所有远端 Push 待私有仓库 URL 与可见性核实。上传分支不等于合并或稳定验收。`8_Drive` 独立副本及 `7_Key`、`9_Dataset` 不参与。
+GitHub `github` Remote 已配置为 `https://github.com/wgoodzperfectx/FocusAnchor.git`，Gitee `origin` 保留。仓库当前为 Public；上传前须完成公开发布所需的敏感信息与素材权利审查。上传分支不等于合并或稳定验收。`8_Drive` 独立副本及 `7_Key`、`9_Dataset` 不参与。
