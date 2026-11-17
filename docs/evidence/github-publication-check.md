@@ -6,7 +6,7 @@
 
 | 已上传分支 | 远端 HEAD | 定位 |
 |---|---|---|
-| `codex/integration-20261116` | `a13f90d` | 集成候选；PR #1 草稿 |
+| `codex/integration-20261116` | 见远端分支 | 集成候选；PR #1 草稿，本文件更新也会推进 HEAD |
 | `codex/ux-v3-1` | `7a06b40` | 手机 UX WIP；负责人审阅前不合并 |
 | `codex/workflow-v21` | `8bd265b` | 工作流 WIP；真实平台联调待验证 |
 | `codex/watch-ux-v3-2` | `5cf6ebd` | 历史基线 |
