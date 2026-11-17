@@ -1,6 +1,6 @@
 # Merge readiness（2026-11-17）
 
-当前集成候选：`codex/integration-20261116`。以下状态基于本地 worktree，不代表 GitHub 已上传。
+当前集成候选：`codex/integration-20261116`。该分支及 Watch V3.2/V3.3/V3.4 已上传 GitHub；其余路线状态仍基于本地 worktree。
 
 | 路线 | 当前判断 | 原因与下一步 |
 |---|---|---|
