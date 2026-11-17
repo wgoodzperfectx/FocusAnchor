@@ -1,0 +1,48 @@
+{
+  "agentCards": [
+    {
+      "agentId": "agent72a4895cce3a4039bc966f44d002f905",
+      "name": "FocusAnchor端侧",
+      "description": "记录分心念头、恢复当前任务并提供低干扰专注陪伴；数据默认在设备本地处理。",
+      "version": "1.0.0",
+      "defaultInputModes": [
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "CaptureDistractionThought",
+          "name": "记录闪念并回到任务",
+          "description": "用户主动说出分心念头，先收住，再给出一个马上能开始的下一步。",
+          "tags": [
+            "闪念",
+            "任务"
+          ],
+          "examples": [
+            "我突然想查旅行攻略，先帮我记下来，我要继续写报告",
+            "这个念头先存起来，我想继续写报告",
+            "不要保存，只提醒我继续做当前这一步"
+          ]
+        },
+        {
+          "id": "ResumeFocusTask",
+          "name": "恢复刚才的任务",
+          "description": "用户主动请求回忆刚才的任务，并选择一个最小下一步。",
+          "tags": ["召回", "任务"],
+          "examples": ["我刚才在做什么", "帮我找回刚才的任务", "我忘了要做什么了"]
+        },
+        {
+          "id": "StartFocusCompanion",
+          "name": "开始专注陪伴",
+          "description": "用户主动开启、调整或暂停低干扰的专注陪伴。",
+          "tags": ["陪伴", "专注"],
+          "examples": ["陪我专注二十分钟，提醒轻一点", "开启安静陪伴", "暂停陪伴"]
+        }
+      ],
+      "category": "实用工具",
+      "iconUrl": "https://developer.huawei.com"
+    }
+  ]
+}
