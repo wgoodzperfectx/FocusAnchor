@@ -109,7 +109,10 @@ export class StorageService {
         shareUsageData: privacy ? privacy.shareUsageData : DEFAULT_PRIVACY.shareUsageData,
         allowAnalytics: privacy ? privacy.allowAnalytics : DEFAULT_PRIVACY.allowAnalytics,
         showAgeOnProfile: privacy ? privacy.showAgeOnProfile : DEFAULT_PRIVACY.showAgeOnProfile,
-        localEncryptionOnly: privacy ? privacy.localEncryptionOnly : DEFAULT_PRIVACY.localEncryptionOnly
+        localEncryptionOnly: privacy ? privacy.localEncryptionOnly : DEFAULT_PRIVACY.localEncryptionOnly,
+        consentFocusSupport: privacy?.consentFocusSupport === true,
+        consentThoughtSandbox: privacy?.consentThoughtSandbox === true,
+        workflowConsentVersion: Number.isSafeInteger(privacy?.workflowConsentVersion) && (privacy?.workflowConsentVersion ?? 0) > 0 ? privacy!.workflowConsentVersion : 1
       }
     };
   }

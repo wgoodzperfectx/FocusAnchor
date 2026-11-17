@@ -77,6 +77,28 @@
           }
         ]
       }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "FocusTaskCardAbility",
+        "srcEntry": "./ets/formability/FocusTaskCardAbility.ets",
+        "type": "form",
+        "metadata": [
+          { "name": "ohos.extension.form", "resource": "$profile:form_config" }
+        ]
+      },
+      {
+        "name": "FocusAnchorAgentExtAbility",
+        "srcEntry": "./ets/focusanchoragentextability/FocusAnchorAgentExtAbility.ets",
+        "type": "agent",
+        "exported": true,
+        "metadata": [
+          {
+            "name": "ohos.extension.agent",
+            "resource": "$profile:agent_config"
+          }
+        ]
+      }
     ]
   }
 }
