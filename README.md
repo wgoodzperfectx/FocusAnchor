@@ -19,9 +19,9 @@ Channel C 授权事件 → G0 → M1 → M2 候选 → G0 复检 ─┤
 
 ## 功能状态与演示
 
-本分支包含手表 V3.3 候选界面、状态/队列逻辑和后端 AgentArts 响应解析组件。后者仅通过合成响应测试，尚未完成真实平台调用或 App 注入。手机 V3.1、Workflow 大量未提交改动和 Modeling 研究保留在各自工作树。Watch V3.4 是未完成的人机交互实验。[手表截图和录屏](docs/evidence/watch-v3.3/)不证明真实跨端 ACK。
+本分支包含手表 V3.3 候选界面、状态/队列逻辑和后端 AgentArts 响应解析组件。后者仅通过合成响应测试，尚未完成真实平台调用或 App 注入。手机 V3.1 与 Workflow V2.1 已作为独立 WIP 分支上传，尚未合并；Modeling 的脱敏研究快照另行上传。Watch V3.4 是未完成的人机交互实验。[手表截图和录屏](docs/evidence/watch-v3.3/)不证明真实跨端 ACK。
 
-专题路线：`codex/ux-v3-1` 为手机 UI；`codex/workflow-v21` 为主体业务与工作流；`codex/modeling-task0` 为研究原型；`codex/watch-ux-v3-3` 是手表候选基线，`codex/watch-ux-v3-4` 是实验路线。各分支的可合并条件见[合并准备表](docs/integration/merge-readiness.md)。AgentArts 真实 Provider 仍在平台与 App 接入阶段，当前仅有离线解析与合成调用测试。
+专题路线：`codex/ux-v3-1` 为手机 UI WIP；`codex/workflow-v21` 为主体业务与工作流 WIP；`codex/modeling-public-20261117` 是脱敏研究快照，原 `codex/modeling-task0` 和可移植性实验历史仅本地保留；`codex/watch-ux-v3-3` 是手表候选基线，`codex/watch-ux-v3-4` 是实验路线。各分支的可合并条件见[合并准备表](docs/integration/merge-readiness.md)。AgentArts 真实 Provider 仍在平台与 App 接入阶段，当前仅有离线解析与合成调用测试。
 
 ## Quick Start 与本地 Replay
 
@@ -36,7 +36,7 @@ python tests/test_wear_v33_assets.py
 
 ## 测试与限制
 
-本分支最近一次 Node 测试 19/19，通过 9 个透明手表素材检查；`entry` 和 `wear` 的 DevEco 26 SDK 构建均成功，产物未签名。手机原树全量 Node 测试 57/59，两项 Workflow 测试因缺少 `WorkflowV21Mocks.ts` 无法加载。模拟器、真机、AgentArts、卡片回写和双端 ACK 均无本分支本轮验收结果。参见[能力矩阵](docs/evidence/capability-status.md)与[路线图](docs/roadmap.md)。
+本轮集成树 Node 测试 19/19、透明手表素材检查 9 项通过；`entry` 和 `wear` 的 DevEco 26 SDK `assembleHap` 构建均成功，Hvigor 明确跳过签名。Workflow 原树 Node 204/204，手机原树 57/59（两项缺少 `WorkflowV21Mocks.ts`）。建模公开快照 Node 6/6，Python 测试因本机缺少 `pytest` 未运行。模拟器、真机、AgentArts 真实平台、卡片回写和双端 ACK 均无本轮验收结果。参见[能力矩阵](docs/evidence/capability-status.md)与[路线图](docs/roadmap.md)。
 
 ## License 与 Credits
 
