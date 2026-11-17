@@ -1,39 +1,9 @@
-# pig2.0
+# FocusAnchor 建模研究公开快照
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+此分支用于审查 M1 情境估计、M2 介入策略及可移植性实验，**不是生产主动干预能力**。WESAD → NURSE 泛化尚未通过；G0 硬性门控仍是执行侧约束。详见 `docs/modeling-boundaries.md` 与 `reports/`。
 
-#### 软件架构
-软件架构说明
+该快照从本地研究分支整理而来，保留研究文件和实验结果，但不包含原始数据集、模型权重、本地 `.npmrc` 或个人目录路径。文档与清单中的 `<LOCAL_PROJECT_ROOT>` 由研究者按本机目录替换；`9_Dataset` 数据不随 GitHub 分发。原研究分支与完整历史仍保留在本地。
 
+本轮 `node --test tests/*.test.mjs` 为 6/6 通过。Python 测试尚未运行：当前 Python 环境缺少 `pytest`。实验指标不等于真实场景、设备或临床验证。
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+协作请以 GitHub `main` 为 PR 基线，保留实验性标记；可生产集成候选见 `codex/integration-20261116`。
