@@ -21,6 +21,8 @@ Channel C 授权事件 → G0 → M1 → M2 候选 → G0 复检 ─┤
 
 本分支包含手表 V3.3 候选界面、状态/队列逻辑和后端 AgentArts 响应解析组件。后者仅通过合成响应测试，尚未完成真实平台调用或 App 注入。手机 V3.1、Workflow 大量未提交改动和 Modeling 研究保留在各自工作树。Watch V3.4 是未完成的人机交互实验。[手表截图和录屏](docs/evidence/watch-v3.3/)不证明真实跨端 ACK。
 
+专题路线：`codex/ux-v3-1` 为手机 UI；`codex/workflow-v21` 为主体业务与工作流；`codex/modeling-task0` 为研究原型；`codex/watch-ux-v3-3` 是手表候选基线，`codex/watch-ux-v3-4` 是实验路线。各分支的可合并条件见[合并准备表](docs/integration/merge-readiness.md)。AgentArts 真实 Provider 仍在平台与 App 接入阶段，当前仅有离线解析与合成调用测试。
+
 ## Quick Start 与本地 Replay
 
 需要 Node.js 24（本轮使用 v24.13.0）和 Python 3。在仓库根目录运行：
@@ -39,3 +41,7 @@ python tests/test_wear_v33_assets.py
 ## License 与 Credits
 
 仓库当前有 [GPL-2.0 LICENSE](LICENSE)。公开发布前须核对原有代码、第三方图片/录屏、知识与数据的权利和许可；见[发布检查](docs/evidence/github-publication-check.md)。当前 Git Remote 仅指向 Gitee，尚无 GitHub Remote。
+
+## 协作
+
+私有 GitHub 仓库 URL 尚待确认。队友取得仓库访问权后，克隆仓库、检出集成或专题分支，按[贡献指南](CONTRIBUTING.md)创建独立 worktree、运行测试并提交 PR；[PR 模板](.github/pull_request_template.md)要求列出契约影响、验证和未完成项。

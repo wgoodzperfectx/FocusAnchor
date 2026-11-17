@@ -19,3 +19,5 @@
 **推荐远端方案（尚未执行）：**项目负责人确认目标 GitHub 仓库地址和可见性后，将本地集成提交复制到 `codex/github-demo-candidate` 审查分支；完成素材许可、个人信息、签名与构建产物复核，再以该候选分支 Push 到新配置的 GitHub Remote。默认分支和 Release 单独决议，不直接推送 Gitee `master`。可公开候选为已审查的源码、README、Demo/测试脚本与脱敏架构资料；排除项目根 `7_Key/`、`9_Dataset/`、本地恢复包、未审核素材及个人信息。仓库内现有 42 个媒体文件需逐项确认权利与画面隐私后再决定公开范围。
 
 **扫描范围限制：**脚本检查 Git 已跟踪文件的路径、大小与少量高风险字符串；不覆盖 Git 历史、未跟踪文件、压缩包内部或第三方版权。扫描快照保存在项目本地 `10_Codex/reports/repository-consolidation/publication-scan.json`。
+
+2026-11-17 补充：主仓库当前 44 个可达提交已做定向敏感字符串与敏感扩展名路径检查，未命中；该结果仍不能代替全量秘密和许可审查。原主体工作区的 `build-profile.json5` 含口令字段，未提交且不得进入待上传分支。协作入口见 `CONTRIBUTING.md`、`.github/pull_request_template.md` 和 `docs/integration/merge-readiness.md`。GitHub URL、私有状态和默认分支尚未核验。
